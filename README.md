@@ -1,39 +1,41 @@
-# Herdr Cockpit — Windows 연결 수정판
+# Herdr Cockpit — Windows Connection Fix
 
-Herdr의 작업 공간과 에이전트, 터미널을 VS Code에서 사용하는 확장 프로그램입니다. 이 저장소는 [원본 Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit)을 기반으로, **Windows에서 서버가 실행 중인데도 확장이 연결되지 않던 문제**를 수정한 포크입니다.
+English first · [한국어 안내](#한국어)
 
-[**v0.2.2 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.2.2/herdr-cockpit-0.2.2.vsix) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases)
+Manage Herdr spaces, agents and terminals in VS Code. This fork of [the original Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit) fixes **Windows connections that failed even while the Herdr server was running**.
 
-## 우리가 해결한 문제
+[**Download v0.2.2 VSIX**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.2.2/herdr-cockpit-0.2.2.vsix) · [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases)
 
-Windows에서 Herdr 0.9.3 서버는 정상 실행 중이었고 CLI의 서버 상태 조회와 세션 조회도 성공했습니다. 하지만 VS Code 확장에는 다음 오류가 표시됐습니다.
+## What we fixed
+
+The Windows Herdr 0.9.3 server was running, and the CLI could query both server status and the session snapshot. The VS Code extension still reported:
 
 ```text
 Herdr isn't answering
 connect ENOTSOCK ...\herdr\herdr.sock
 ```
 
-| 문제 | 원인 | 해결 및 반영 위치 |
+| Problem | Cause | Fix and scope |
 | --- | --- | --- |
-| 서버가 실행 중인데 확장 연결 실패 | 확장이 논리적 소켓 경로를 Unix 소켓처럼 직접 열었습니다. Windows Herdr는 named pipe로 통신하며, 같은 이름의 디스크 파일은 통신 소켓이 아닙니다. | `src/herdrClient.ts`에 Windows 전송 경로 변환을 추가했습니다. 일반 API 요청과 실시간 이벤트 구독 모두 사용합니다. 소스와 v0.2.2 VSIX에 포함됩니다. |
-| Windows 기본 소켓 위치를 찾지 못함 | 기본 경로가 macOS/Linux의 `~/.config/herdr/herdr.sock`으로 고정돼 있었습니다. | Windows 기본 경로를 `%APPDATA%/herdr/herdr.sock`으로 변경했습니다. 이름 있는 세션 경로도 같은 기준을 사용합니다. 소스와 VSIX에 포함됩니다. |
-| 실행 파일과 소켓 경로 설정 오류 | 실제 PC의 `herdr.binaryPath`에 실행 파일 대신 폴더가 지정됐고, 소켓 경로에 역슬래시가 과도하게 들어 있었습니다. | 해당 PC의 VS Code 설정을 실제 `herdr.exe`와 올바른 논리적 소켓 경로로 수정했습니다. **개인 PC의 경로 설정은 VSIX에 포함되지 않습니다.** |
-| 설명 이미지와 달리 패널이 왼쪽에 표시됨 | VS Code의 기본 사이드바 배치 차이입니다. 연결 오류와 별개입니다. | Herdr 아이콘 우클릭 → **Move To → Secondary Side Bar**로 오른쪽에 배치할 수 있습니다. 자동 배치 코드를 추가한 것은 아닙니다. |
+| Extension cannot connect to a running Windows server | The client opened the logical socket path as a Unix socket. Windows Herdr communicates through a named pipe; the disk file at that path is not the transport socket. | Added Windows transport-path conversion in `src/herdrClient.ts` for both API requests and live event subscriptions. Included in source and the v0.2.2 VSIX. |
+| Default Windows socket path cannot be found | The client defaulted to the macOS/Linux path, `~/.config/herdr/herdr.sock`. | Use `%APPDATA%/herdr/herdr.sock` on Windows, including the corresponding path for named sessions. Included in source and the VSIX. |
+| Executable and socket settings are incorrect | On the affected PC, `herdr.binaryPath` pointed to a directory rather than the executable, and the socket path contained excessive backslashes. | Corrected that PC's settings to point to `herdr.exe` and the logical socket path. **Machine-specific paths are not bundled in the VSIX.** |
+| Sidebar appears on the left instead of the screenshot's right side | This is VS Code's saved layout, separate from server connectivity. | Right-click the Herdr activity-bar icon → **Move To → Secondary Side Bar**. No automatic relocation code was added. |
 
-Windows 전송 경로는 `\\.\pipe\` 접두사와 정규화한 논리적 소켓 경로를 조합합니다. 이미 named-pipe 경로인 경우 접두사를 중복해서 붙이지 않습니다. macOS/Linux의 Unix 소켓 연결 방식은 유지합니다. CLI 환경 변수에는 논리적 소켓 경로를 전달합니다.
+On Windows, the transport combines the `\\.\pipe\` prefix with the normalized logical socket path. Already-prefixed named-pipe paths are left unchanged. macOS/Linux retain Unix socket connections, and CLI environment variables continue to use the logical socket path.
 
-설치된 확장의 JavaScript를 먼저 수정해 실제 연결을 확인한 뒤, 같은 수정을 TypeScript 소스에 반영하고 소스에서 v0.2.2 VSIX를 빌드·릴리즈했습니다.
+We first patched the installed extension's JavaScript and verified the live connection, then applied the same fix to TypeScript source and built and released v0.2.2 from that source.
 
-## Windows 설치 및 설정
+## Windows installation and settings
 
-1. 위 링크에서 이 포크의 VSIX를 다운로드합니다. 원본 Marketplace 버전에는 이 포크의 수정이 들어 있지 않을 수 있습니다.
-2. VS Code의 **Extensions → ⋯ → Install from VSIX…**에서 설치합니다.
-3. Herdr 서버를 실행하고 필요한 경로를 설정합니다.
-4. **Developer: Reload Window**를 실행합니다.
+1. Download this fork's VSIX using the link above. The upstream Marketplace version may not include this fork's fix.
+2. In VS Code, choose **Extensions → ⋯ → Install from VSIX…**.
+3. Run the Herdr server and configure its paths if needed.
+4. Run **Developer: Reload Window**.
 
-기존 설치를 업데이트할 수 있도록 확장 ID `sriharirao.herdr-cockpit`을 유지했습니다. 이 포크는 GitHub VSIX로 배포하며, 원작자의 Marketplace/Open VSX에 게시하지 않습니다. 원본 버전으로 업데이트하면 이 수정판이 교체될 수 있습니다.
+The original extension ID, `sriharirao.herdr-cockpit`, is retained so this VSIX upgrades an existing installation. This fork is distributed through GitHub releases; it does not publish to the original author's Marketplace or Open VSX listing. Installing a later upstream version may replace this fork.
 
-`herdr.binaryPath`는 **폴더가 아니라 실행 파일 전체 경로**여야 합니다. 예:
+Set `herdr.binaryPath` to the **full executable path**, including `herdr.exe`:
 
 ```json
 {
@@ -42,18 +44,18 @@ Windows 전송 경로는 `\\.\pipe\` 접두사와 정규화한 논리적 소켓 
 }
 ```
 
-위 실행 파일 경로는 예시이므로 자신의 설치 위치로 바꾸세요. `herdr.socketPath`가 비어 있으면 `HERDR_SOCKET_PATH` 환경 변수가 우선하며, 없으면 기본 경로를 사용합니다. 기본 세션은 `%APPDATA%/herdr/herdr.sock`, 이름 있는 세션은 `%APPDATA%/herdr/sessions/<name>/herdr.sock`입니다.
+Replace the example executable path with your own installation location. With an empty `herdr.socketPath`, `HERDR_SOCKET_PATH` takes priority; otherwise the default is `%APPDATA%/herdr/herdr.sock`. Named sessions use `%APPDATA%/herdr/sessions/<name>/herdr.sock`.
 
-소켓 경로를 직접 지정할 때도 **논리적 소켓 파일 경로**를 입력하세요. `\\.\pipe\` 접두사는 설정에 넣지 않습니다. JSON에서 역슬래시는 `\\`로 이스케이프하거나, 위 예시처럼 슬래시를 사용할 수 있습니다.
+For a custom socket setting, enter the **logical socket file path**, without the `\\.\pipe\` prefix. In JSON, escape backslashes as `\\`, or use forward slashes as in the example.
 
-## 검증 범위
+## Validation and limitations
 
-- 실제 Windows PC의 Herdr **0.9.3 / 프로토콜 22**에 연결해 세션 조회, 이벤트 구독과 VS Code 사이드바의 작업 공간·셸 표시를 확인했습니다.
-- `src/test/transportTest.ts`로 Windows named-pipe 변환, 접두사 중복 방지, 기본·이름 있는 세션 경로, 실제 테스트 서버의 요청·구독 응답을 검증합니다.
-- TypeScript 컴파일과 린트, Windows 전송 회귀 테스트가 통과했습니다. GitHub Actions의 Linux·macOS 전체 테스트와 릴리즈 빌드도 통과했습니다.
-- 모든 에이전트 실행·사용량 표시 기능을 Windows에서 검증한 것은 아닙니다. POSIX 셸 기반의 companion plugin도 Windows에서 완전히 검증되지 않았습니다.
+- Verified against a real Windows Herdr **0.9.3 / protocol 22** server: session snapshots, event subscriptions, and spaces and shells shown in the VS Code sidebar.
+- `src/test/transportTest.ts` covers Windows pipe conversion, duplicate-prefix prevention, default and named-session paths, and actual request/subscription exchanges with a test server.
+- TypeScript compilation, lint and the Windows transport regression test passed. Linux/macOS full test suites and the GitHub release build also passed.
+- Not every agent-launch or usage-reporting feature has been validated on Windows. The POSIX shell-based companion plugin is not fully validated on Windows either.
 
-## 빌드 및 릴리즈
+## Build and release
 
 ```sh
 npm ci
@@ -63,13 +65,17 @@ node out/test/transportTest.js
 npm run package
 ```
 
-VSIX는 `herdr-cockpit-<version>.vsix`로 생성됩니다. 전체 `npm test`에는 Unix 실행 파일·셸을 사용하는 테스트가 있으므로 Linux/macOS CI에서 검증합니다.
+The package is written to `herdr-cockpit-<version>.vsix`. The full `npm test` suite includes Unix executable and shell fixtures and is validated in Linux/macOS CI.
 
-`main`에 `package.json` 버전 변경을 푸시하거나 일치하는 버전 태그를 푸시하면 Release workflow가 테스트·패키징 후 GitHub 릴리즈를 만듭니다. 포크에서는 먼저 **Actions 활성화**가 필요합니다. 릴리즈에는 버전별 파일과 고정 이름 `herdr-cockpit.vsix`를 첨부합니다.
+A `package.json` version change pushed to `main`, or a matching version tag, triggers the Release workflow. It tests, packages and creates a GitHub release with a versioned VSIX and the stable filename `herdr-cockpit.vsix`. Forks must enable **GitHub Actions** first.
 
-아래는 원본 프로젝트의 기능과 사용 안내입니다. Windows 검증 범위는 위 내용을 참고하세요.
+## Repository summary / 저장소 설명
 
----
+Windows connection fixes for Herdr Cockpit in VS Code: named pipes, socket paths and VSIX releases. | VS Code용 Herdr Cockpit Windows 연결 수정: named pipe·소켓 경로·VSIX 릴리즈.
+
+## Upstream features and usage
+
+The following describes the upstream project's features. Windows support in this fork is limited to the validation scope above.
 
 Run your [Herdr](https://herdr.dev) agents and do everything around them in **one VS Code window**.
 
@@ -160,3 +166,78 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` needs no editor.
 ## License
 
 [MIT](LICENSE). Agent logos: see [media/THIRD_PARTY_NOTICES.md](media/THIRD_PARTY_NOTICES.md).
+
+
+---
+
+## 한국어
+
+Herdr의 작업 공간과 에이전트, 터미널을 VS Code에서 사용하는 확장 프로그램입니다. 이 저장소는 [원본 Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit)을 기반으로, **Windows에서 서버가 실행 중인데도 확장이 연결되지 않던 문제**를 수정한 포크입니다.
+
+[**v0.2.2 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.2.2/herdr-cockpit-0.2.2.vsix) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases)
+
+### 우리가 해결한 문제
+
+Windows에서 Herdr 0.9.3 서버는 정상 실행 중이었고 CLI의 서버 상태 조회와 세션 조회도 성공했습니다. 하지만 VS Code 확장에는 다음 오류가 표시됐습니다.
+
+```text
+Herdr isn't answering
+connect ENOTSOCK ...\herdr\herdr.sock
+```
+
+| 문제 | 원인 | 해결 및 반영 위치 |
+| --- | --- | --- |
+| 서버가 실행 중인데 확장 연결 실패 | 확장이 논리적 소켓 경로를 Unix 소켓처럼 직접 열었습니다. Windows Herdr는 named pipe로 통신하며, 같은 이름의 디스크 파일은 통신 소켓이 아닙니다. | `src/herdrClient.ts`에 Windows 전송 경로 변환을 추가했습니다. 일반 API 요청과 실시간 이벤트 구독 모두 사용합니다. 소스와 v0.2.2 VSIX에 포함됩니다. |
+| Windows 기본 소켓 위치를 찾지 못함 | 기본 경로가 macOS/Linux의 `~/.config/herdr/herdr.sock`으로 고정돼 있었습니다. | Windows 기본 경로를 `%APPDATA%/herdr/herdr.sock`으로 변경했습니다. 이름 있는 세션 경로도 같은 기준을 사용합니다. 소스와 VSIX에 포함됩니다. |
+| 실행 파일과 소켓 경로 설정 오류 | 실제 PC의 `herdr.binaryPath`에 실행 파일 대신 폴더가 지정됐고, 소켓 경로에 역슬래시가 과도하게 들어 있었습니다. | 해당 PC의 VS Code 설정을 실제 `herdr.exe`와 올바른 논리적 소켓 경로로 수정했습니다. **개인 PC의 경로 설정은 VSIX에 포함되지 않습니다.** |
+| 설명 이미지와 달리 패널이 왼쪽에 표시됨 | VS Code의 기본 사이드바 배치 차이입니다. 연결 오류와 별개입니다. | Herdr 아이콘 우클릭 → **Move To → Secondary Side Bar**로 오른쪽에 배치할 수 있습니다. 자동 배치 코드를 추가한 것은 아닙니다. |
+
+Windows 전송 경로는 `\\.\pipe\` 접두사와 정규화한 논리적 소켓 경로를 조합합니다. 이미 named-pipe 경로인 경우 접두사를 중복해서 붙이지 않습니다. macOS/Linux의 Unix 소켓 연결 방식은 유지합니다. CLI 환경 변수에는 논리적 소켓 경로를 전달합니다.
+
+설치된 확장의 JavaScript를 먼저 수정해 실제 연결을 확인한 뒤, 같은 수정을 TypeScript 소스에 반영하고 소스에서 v0.2.2 VSIX를 빌드·릴리즈했습니다.
+
+### Windows 설치 및 설정
+
+1. 위 링크에서 이 포크의 VSIX를 다운로드합니다. 원본 Marketplace 버전에는 이 포크의 수정이 들어 있지 않을 수 있습니다.
+2. VS Code의 **Extensions → ⋯ → Install from VSIX…**에서 설치합니다.
+3. Herdr 서버를 실행하고 필요한 경로를 설정합니다.
+4. **Developer: Reload Window**를 실행합니다.
+
+기존 설치를 업데이트할 수 있도록 확장 ID `sriharirao.herdr-cockpit`을 유지했습니다. 이 포크는 GitHub VSIX로 배포하며, 원작자의 Marketplace/Open VSX에 게시하지 않습니다. 원본 버전으로 업데이트하면 이 수정판이 교체될 수 있습니다.
+
+`herdr.binaryPath`는 **폴더가 아니라 실행 파일 전체 경로**여야 합니다. 예:
+
+```json
+{
+  "herdr.binaryPath": "C:/Tools/herdr/herdr.exe",
+  "herdr.socketPath": ""
+}
+```
+
+위 실행 파일 경로는 예시이므로 자신의 설치 위치로 바꾸세요. `herdr.socketPath`가 비어 있으면 `HERDR_SOCKET_PATH` 환경 변수가 우선하며, 없으면 기본 경로를 사용합니다. 기본 세션은 `%APPDATA%/herdr/herdr.sock`, 이름 있는 세션은 `%APPDATA%/herdr/sessions/<name>/herdr.sock`입니다.
+
+소켓 경로를 직접 지정할 때도 **논리적 소켓 파일 경로**를 입력하세요. `\\.\pipe\` 접두사는 설정에 넣지 않습니다. JSON에서 역슬래시는 `\\`로 이스케이프하거나, 위 예시처럼 슬래시를 사용할 수 있습니다.
+
+### 검증 범위
+
+- 실제 Windows PC의 Herdr **0.9.3 / 프로토콜 22**에 연결해 세션 조회, 이벤트 구독과 VS Code 사이드바의 작업 공간·셸 표시를 확인했습니다.
+- `src/test/transportTest.ts`로 Windows named-pipe 변환, 접두사 중복 방지, 기본·이름 있는 세션 경로, 실제 테스트 서버의 요청·구독 응답을 검증합니다.
+- TypeScript 컴파일과 린트, Windows 전송 회귀 테스트가 통과했습니다. GitHub Actions의 Linux·macOS 전체 테스트와 릴리즈 빌드도 통과했습니다.
+- 모든 에이전트 실행·사용량 표시 기능을 Windows에서 검증한 것은 아닙니다. POSIX 셸 기반의 companion plugin도 Windows에서 완전히 검증되지 않았습니다.
+
+### 빌드 및 릴리즈
+
+```sh
+npm ci
+npm run compile
+npm run lint
+node out/test/transportTest.js
+npm run package
+```
+
+VSIX는 `herdr-cockpit-<version>.vsix`로 생성됩니다. 전체 `npm test`에는 Unix 실행 파일·셸을 사용하는 테스트가 있으므로 Linux/macOS CI에서 검증합니다.
+
+`main`에 `package.json` 버전 변경을 푸시하거나 일치하는 버전 태그를 푸시하면 Release workflow가 테스트·패키징 후 GitHub 릴리즈를 만듭니다. 포크에서는 먼저 **Actions 활성화**가 필요합니다. 릴리즈에는 버전별 파일과 고정 이름 `herdr-cockpit.vsix`를 첨부합니다.
+
+원본 프로젝트의 기능과 사용 안내는 위의 영어 섹션을 참고하세요. Windows 검증 범위는 이 섹션의 내용을 참고하세요.
+
