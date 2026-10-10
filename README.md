@@ -1,16 +1,75 @@
-# Herdr Cockpit
+# Herdr Cockpit — Windows 연결 수정판
 
-This fork adds a Windows connection fix to [the original Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit). Download the VSIX from [this fork's releases](https://github.com/doha-230/vscode-herdr-cockpit/releases). The original extension ID is retained so the VSIX upgrades an existing installation.
+Herdr의 작업 공간과 에이전트, 터미널을 VS Code에서 사용하는 확장 프로그램입니다. 이 저장소는 [원본 Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit)을 기반으로, **Windows에서 서버가 실행 중인데도 확장이 연결되지 않던 문제**를 수정한 포크입니다.
 
-### Windows setup
+[**v0.2.2 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.2.2/herdr-cockpit-0.2.2.vsix) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases)
 
-Windows API connections use Herdr's named pipe, and the default logical socket path is `%APPDATA%\\herdr\\herdr.sock`. Tested locally with Herdr 0.9.3 (protocol 22) for server snapshots, event subscriptions and the VS Code sidebar. Other features, including the POSIX companion plugin, are not fully validated on Windows.
+## 우리가 해결한 문제
 
-- Set `herdr.binaryPath` to the full path of **herdr.exe**, not its containing directory.
-- Leave `herdr.socketPath` empty for the default session, or use the logical socket file path. JSON settings require escaped backslashes (`\\`). Do not add the named-pipe prefix to this setting.
-- To match the screenshot's right-hand layout, right-click the Herdr activity-bar icon and select **Move To → Secondary Side Bar**. Layout is saved by VS Code, not included in the VSIX.
+Windows에서 Herdr 0.9.3 서버는 정상 실행 중이었고 CLI의 서버 상태 조회와 세션 조회도 성공했습니다. 하지만 VS Code 확장에는 다음 오류가 표시됐습니다.
 
-After installing the VSIX, run **Developer: Reload Window**.
+```text
+Herdr isn't answering
+connect ENOTSOCK ...\herdr\herdr.sock
+```
+
+| 문제 | 원인 | 해결 및 반영 위치 |
+| --- | --- | --- |
+| 서버가 실행 중인데 확장 연결 실패 | 확장이 논리적 소켓 경로를 Unix 소켓처럼 직접 열었습니다. Windows Herdr는 named pipe로 통신하며, 같은 이름의 디스크 파일은 통신 소켓이 아닙니다. | `src/herdrClient.ts`에 Windows 전송 경로 변환을 추가했습니다. 일반 API 요청과 실시간 이벤트 구독 모두 사용합니다. 소스와 v0.2.2 VSIX에 포함됩니다. |
+| Windows 기본 소켓 위치를 찾지 못함 | 기본 경로가 macOS/Linux의 `~/.config/herdr/herdr.sock`으로 고정돼 있었습니다. | Windows 기본 경로를 `%APPDATA%/herdr/herdr.sock`으로 변경했습니다. 이름 있는 세션 경로도 같은 기준을 사용합니다. 소스와 VSIX에 포함됩니다. |
+| 실행 파일과 소켓 경로 설정 오류 | 실제 PC의 `herdr.binaryPath`에 실행 파일 대신 폴더가 지정됐고, 소켓 경로에 역슬래시가 과도하게 들어 있었습니다. | 해당 PC의 VS Code 설정을 실제 `herdr.exe`와 올바른 논리적 소켓 경로로 수정했습니다. **개인 PC의 경로 설정은 VSIX에 포함되지 않습니다.** |
+| 설명 이미지와 달리 패널이 왼쪽에 표시됨 | VS Code의 기본 사이드바 배치 차이입니다. 연결 오류와 별개입니다. | Herdr 아이콘 우클릭 → **Move To → Secondary Side Bar**로 오른쪽에 배치할 수 있습니다. 자동 배치 코드를 추가한 것은 아닙니다. |
+
+Windows 전송 경로는 `\\.\pipe\` 접두사와 정규화한 논리적 소켓 경로를 조합합니다. 이미 named-pipe 경로인 경우 접두사를 중복해서 붙이지 않습니다. macOS/Linux의 Unix 소켓 연결 방식은 유지합니다. CLI 환경 변수에는 논리적 소켓 경로를 전달합니다.
+
+설치된 확장의 JavaScript를 먼저 수정해 실제 연결을 확인한 뒤, 같은 수정을 TypeScript 소스에 반영하고 소스에서 v0.2.2 VSIX를 빌드·릴리즈했습니다.
+
+## Windows 설치 및 설정
+
+1. 위 링크에서 이 포크의 VSIX를 다운로드합니다. 원본 Marketplace 버전에는 이 포크의 수정이 들어 있지 않을 수 있습니다.
+2. VS Code의 **Extensions → ⋯ → Install from VSIX…**에서 설치합니다.
+3. Herdr 서버를 실행하고 필요한 경로를 설정합니다.
+4. **Developer: Reload Window**를 실행합니다.
+
+기존 설치를 업데이트할 수 있도록 확장 ID `sriharirao.herdr-cockpit`을 유지했습니다. 이 포크는 GitHub VSIX로 배포하며, 원작자의 Marketplace/Open VSX에 게시하지 않습니다. 원본 버전으로 업데이트하면 이 수정판이 교체될 수 있습니다.
+
+`herdr.binaryPath`는 **폴더가 아니라 실행 파일 전체 경로**여야 합니다. 예:
+
+```json
+{
+  "herdr.binaryPath": "C:/Tools/herdr/herdr.exe",
+  "herdr.socketPath": ""
+}
+```
+
+위 실행 파일 경로는 예시이므로 자신의 설치 위치로 바꾸세요. `herdr.socketPath`가 비어 있으면 `HERDR_SOCKET_PATH` 환경 변수가 우선하며, 없으면 기본 경로를 사용합니다. 기본 세션은 `%APPDATA%/herdr/herdr.sock`, 이름 있는 세션은 `%APPDATA%/herdr/sessions/<name>/herdr.sock`입니다.
+
+소켓 경로를 직접 지정할 때도 **논리적 소켓 파일 경로**를 입력하세요. `\\.\pipe\` 접두사는 설정에 넣지 않습니다. JSON에서 역슬래시는 `\\`로 이스케이프하거나, 위 예시처럼 슬래시를 사용할 수 있습니다.
+
+## 검증 범위
+
+- 실제 Windows PC의 Herdr **0.9.3 / 프로토콜 22**에 연결해 세션 조회, 이벤트 구독과 VS Code 사이드바의 작업 공간·셸 표시를 확인했습니다.
+- `src/test/transportTest.ts`로 Windows named-pipe 변환, 접두사 중복 방지, 기본·이름 있는 세션 경로, 실제 테스트 서버의 요청·구독 응답을 검증합니다.
+- TypeScript 컴파일과 린트, Windows 전송 회귀 테스트가 통과했습니다. GitHub Actions의 Linux·macOS 전체 테스트와 릴리즈 빌드도 통과했습니다.
+- 모든 에이전트 실행·사용량 표시 기능을 Windows에서 검증한 것은 아닙니다. POSIX 셸 기반의 companion plugin도 Windows에서 완전히 검증되지 않았습니다.
+
+## 빌드 및 릴리즈
+
+```sh
+npm ci
+npm run compile
+npm run lint
+node out/test/transportTest.js
+npm run package
+```
+
+VSIX는 `herdr-cockpit-<version>.vsix`로 생성됩니다. 전체 `npm test`에는 Unix 실행 파일·셸을 사용하는 테스트가 있으므로 Linux/macOS CI에서 검증합니다.
+
+`main`에 `package.json` 버전 변경을 푸시하거나 일치하는 버전 태그를 푸시하면 Release workflow가 테스트·패키징 후 GitHub 릴리즈를 만듭니다. 포크에서는 먼저 **Actions 활성화**가 필요합니다. 릴리즈에는 버전별 파일과 고정 이름 `herdr-cockpit.vsix`를 첨부합니다.
+
+아래는 원본 프로젝트의 기능과 사용 안내입니다. Windows 검증 범위는 위 내용을 참고하세요.
+
+---
 
 Run your [Herdr](https://herdr.dev) agents and do everything around them in **one VS Code window**.
 
@@ -35,7 +94,7 @@ Herdr keeps your coding agents (Claude Code, Codex, Kiro, Cursor Agent, Copilot,
 
 <sub>Images from a demo session (`docs/screenshots`): real Herdr and the real sidebar, with made-up repos, agent screens and usage numbers.</sub>
 
-Works in **VS Code, Cursor, Kiro and Positron** on **macOS and Linux**. A community project, not affiliated with Herdr.
+The upstream extension works in **VS Code, Cursor, Kiro and Positron** on **macOS and Linux**. This fork additionally fixes Windows connections in VS Code, within the validation scope above. A community project, not affiliated with Herdr.
 
 ## Features
 
@@ -50,11 +109,11 @@ Works in **VS Code, Cursor, Kiro and Positron** on **macOS and Linux**. A commun
 ## Requirements
 
 - Herdr 0.9 (socket protocol 22; tested with 0.9.1), running on the same machine as the extension. A newer protocol shows an "incompatible" screen until Herdr Cockpit is updated. With Remote-SSH, the extension runs on the server next to Herdr.
-- macOS or Linux.
+- macOS or Linux for the upstream feature set; Windows connection support in this fork is described above.
 
 ## Get started
 
-1. Install **Herdr Cockpit** from the Extensions view (VS Code Marketplace; Open VSX for Cursor, Kiro and Positron), or download the `.vsix` from [Releases](https://github.com/sriharirao92/vscode-herdr-cockpit/releases) and run `code --install-extension herdr-cockpit.vsix` (or `cursor`, `kiro`, `positron`).
+1. Install **Herdr Cockpit** from the Extensions view (VS Code Marketplace; Open VSX for Cursor, Kiro and Positron), or download the `.vsix` from [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases) and run `code --install-extension herdr-cockpit.vsix` (or `cursor`, `kiro`, `positron`).
 2. Run Herdr as usual, or click **Start Herdr** in the sidebar.
 3. Run **Herdr Cockpit: Set Up Cockpit Window**. The Cockpit window's first folder (`~/.herdr-cockpit`) never changes, so switching spaces never restarts your extensions.
 4. Click a space.
