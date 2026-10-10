@@ -345,7 +345,7 @@
         "herdr.socketPath": {
           "type": "string",
           "default": "",
-          "description": "Herdr socket path. Empty = HERDR_SOCKET_PATH, then ~/.config/herdr/herdr.sock. Machine setting: ignored in workspace and folder settings.",
+          "description": "Herdr socket path. Empty = HERDR_SOCKET_PATH, then %APPDATA%/herdr/herdr.sock on Windows or ~/.config/herdr/herdr.sock on macOS/Linux. Use the logical socket file path, not a named-pipe prefix. Machine setting: ignored in workspace and folder settings.",
           "scope": "machine"
         },
         "herdr.startServer": {
