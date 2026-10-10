@@ -1,5 +1,7 @@
 # Releasing
 
+In this fork, pushing a `package.json` version bump to `main` also runs the release workflow. It validates, packages and creates `v<version>` on the built commit with both versioned and stable-name VSIX assets. Store publishing jobs run only in the upstream repository.
+
 1. Set `version` in `package.json` (and `plugin/herdr-plugin.toml` when the plugin changed), and turn the
    CHANGELOG's "Unreleased" section into that version.
 2. Commit, push, then tag: `git tag -a v0.2.1 -m "Herdr Cockpit v0.2.1" && git push origin v0.2.1`.

@@ -1,5 +1,17 @@
 # Herdr Cockpit
 
+This fork adds a Windows connection fix to [the original Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit). Download the VSIX from [this fork's releases](https://github.com/doha-230/vscode-herdr-cockpit/releases). The original extension ID is retained so the VSIX upgrades an existing installation.
+
+### Windows setup
+
+Windows API connections use Herdr's named pipe, and the default logical socket path is `%APPDATA%\\herdr\\herdr.sock`. Tested locally with Herdr 0.9.3 (protocol 22) for server snapshots, event subscriptions and the VS Code sidebar. Other features, including the POSIX companion plugin, are not fully validated on Windows.
+
+- Set `herdr.binaryPath` to the full path of **herdr.exe**, not its containing directory.
+- Leave `herdr.socketPath` empty for the default session, or use the logical socket file path. JSON settings require escaped backslashes (`\\`). Do not add the named-pipe prefix to this setting.
+- To match the screenshot's right-hand layout, right-click the Herdr activity-bar icon and select **Move To → Secondary Side Bar**. Layout is saved by VS Code, not included in the VSIX.
+
+After installing the VSIX, run **Developer: Reload Window**.
+
 Run your [Herdr](https://herdr.dev) agents and do everything around them in **one VS Code window**.
 
 Herdr keeps your coding agents (Claude Code, Codex, Kiro, Cursor Agent, Copilot, Gemini and more) running in its terminal multiplexer. Herdr Cockpit brings its spaces, agents and shells into VS Code, so the editor around them is the real one.

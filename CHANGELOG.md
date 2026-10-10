@@ -3,6 +3,14 @@
 Herdr Cockpit (the editor extension) and its Herdr plugin (`plugin/`) are released together from this repository.
 Versions up to 0.1.2 were published as **Herdr Hub** (`sriharirao.herdr-hub`).
 
+## 0.2.2 (2026-10-10)
+
+- Windows: connect API requests and event subscriptions through Herdr's named pipe instead of opening the socket marker file (fixes `ENOTSOCK`).
+- Windows: resolve the default socket under `%APPDATA%/herdr`, including named sessions.
+- Add a cross-platform transport regression test for requests and event subscription acknowledgements.
+- Document Windows executable/socket settings and moving the sidebar to the right.
+- This fork retains the original extension ID for local VSIX upgrades; store publishing is restricted to the upstream repository.
+
 ## 0.2.1 (2026-10-08)
 
 - README and store page: images of moving from Herdr's terminal to the same space in VS Code with the plugin, the Cockpit window, and the sidebar (from a demo session; `docs/screenshots/render.sh` rebuilds them).

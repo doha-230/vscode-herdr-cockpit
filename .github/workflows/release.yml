@@ -1,10 +1,12 @@
 name: Release
 
-# Push a tag like v0.1.0 (matching package.json's version) to release. Re-running is safe: an existing
+# Push a version change on main or a matching version tag to release. Re-running is safe: an existing
 # GitHub release gets its files replaced, and stores skip a version they already have.
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['package.json']
 
 permissions:
   contents: read
@@ -21,8 +23,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Check the tag matches package.json
-        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - name: Resolve release version and validate tags
+        run: |
+          tag="v$(node -p 'require("./package.json").version')"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            test "$tag" = "$GITHUB_REF_NAME"
+          fi
+          echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
       - run: npm run compile && npm run lint
       - name: Test
         run: |
@@ -31,9 +38,9 @@ jobs:
           npm test
       - name: Package
         run: |
-          npx vsce package --out "herdr-cockpit-${GITHUB_REF_NAME#v}.vsix"
+          npx vsce package --out "herdr-cockpit-${RELEASE_TAG#v}.vsix"
           # A stable name too: the Herdr plugin installs releases/latest/download/herdr-cockpit.vsix.
-          cp "herdr-cockpit-${GITHUB_REF_NAME#v}.vsix" herdr-cockpit.vsix
+          cp "herdr-cockpit-${RELEASE_TAG#v}.vsix" herdr-cockpit.vsix
       - uses: actions/upload-artifact@v6
         with:
           name: vsix
@@ -42,11 +49,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          files=(herdr-cockpit.vsix "herdr-cockpit-${GITHUB_REF_NAME#v}.vsix")
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber
+          files=(herdr-cockpit.vsix "herdr-cockpit-${RELEASE_TAG#v}.vsix")
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${files[@]}" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" "${files[@]}" --title "Herdr Cockpit ${GITHUB_REF_NAME}" --notes-file CHANGELOG.md
+            gh release create "$RELEASE_TAG" "${files[@]}" --target "$GITHUB_SHA" --title "Herdr Cockpit ${RELEASE_TAG}" --notes-file CHANGELOG.md
           fi
 
   # VS Code Marketplace, signed in with Microsoft Entra ID (no stored token): GitHub's OIDC token is exchanged
@@ -54,7 +61,7 @@ jobs:
   # `marketplace` environment. Set up once, see RELEASING.md. Skipped until the AZURE_CLIENT_ID variable exists.
   marketplace:
     needs: build
-    if: vars.AZURE_CLIENT_ID != ''
+    if: github.repository == 'sriharirao92/vscode-herdr-cockpit' && vars.AZURE_CLIENT_ID != ''
     runs-on: ubuntu-latest
     environment: marketplace
     permissions:
@@ -81,6 +88,7 @@ jobs:
   # so nothing is stored. Otherwise the OVSX_PAT secret, if set. See RELEASING.md.
   openvsx:
     needs: build
+    if: github.repository == 'sriharirao92/vscode-herdr-cockpit'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
