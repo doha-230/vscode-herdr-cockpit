@@ -5,9 +5,9 @@ import * as path from 'path';
 import { HerdrClient, resolveSocketPath, Subscription, subscriptionsFor } from './herdrClient';
 import { AgentStatus, attachOrder, Model, normalize, Pane, Space } from './model';
 import type { PaneProcessInfoResult, SessionSnapshotResult } from './herdrTypes';
-import { HerdrPanel, PanelAction } from './panel';
+import { HerdrPanel, PanelAction, PanelUiState } from './panel';
 import { ActivityTarget, ActivityWatcher, describeProcess, isShellProcess, leaderProcess } from './activity';
-import { buildViewState, paneName, ViewConnection } from './viewState';
+import { buildViewState, paneName, ViewConnection, PaneView, SpaceView } from './viewState';
 import { agentLogo } from './agentLogos';
 import { gitInfo } from './gitInfo';
 import { isMounted, mountSpace, unmountSpace } from './folders';
@@ -18,7 +18,8 @@ import { HERDR_PROTOCOL } from './herdrTypes';
 import { reviewChanges } from './review';
 import { showHelp } from './help';
 import { agentSlug, HerdrActions } from './herdrActions';
-import { closeInHerdr, ManageDeps, newSpace, newTab, rename } from './manage';
+import { closeInHerdr, ManageDeps, newSpace, newTab, pickWhat, rename, startAgent } from './manage';
+import { RemoteHost, RemoteHostConfig, remoteEnvPrefix, remoteQuote, validHost } from './remote';
 import { registerProfiles, SHELL_PROFILE_TITLE } from './profiles';
 import { codexBinary, codexLiveUsage, ProviderUsage, readUsage } from './usage';
 import { setUpClaudeUsage } from './usageSetup';
@@ -27,6 +28,7 @@ const MANAGED_KEY = 'herdr.managedWindow';
 const REVEALED_KEY = 'herdr.hubViewRevealed';
 /** The user chose to switch spaces in this (non-hub) window rather than the Cockpit window. */
 const THIS_WINDOW_KEY = 'herdr.useThisWindow';
+const PANEL_UI_KEY = 'herdr.panelUiState';
 
 /** The extension's view of the Herdr server. */
 export type Conn =
@@ -54,7 +56,7 @@ const shellQuote = (s: string) => (/^[\w@%+=:,./-]+$/.test(s) ? s : `'${s.replac
 const HUB_TAB_DESCRIPTION = '${task}';
 
 /** What a command acts on: from the webview, its context menu, or nothing (then ask). */
-type Target = { spaceId?: string; paneId?: string };
+type Target = { hostId?: string; spaceId?: string; paneId?: string };
 
 /** Webview action -> command id. */
 const PANEL_COMMANDS: Record<string, string> = {
@@ -77,6 +79,10 @@ const PANEL_COMMANDS: Record<string, string> = {
   startServer: 'herdr.startServer',
   copyDiagnostics: 'herdr.copyDiagnostics',
   openInstallDocs: 'herdr.openInstallDocs',
+  openRemoteWorkspace: 'herdr.openRemoteWorkspace',
+  addRemoteHost: 'herdr.addRemoteHost',
+  newRemoteSpace: 'herdr.newRemoteSpace',
+  removeRemoteHost: 'herdr.removeRemoteHost',
 };
 
 export function activate(ctx: vscode.ExtensionContext) {
@@ -88,13 +94,16 @@ export function activate(ctx: vscode.ExtensionContext) {
     log.appendLine = (line: string) => (console.log(`[herdr-cockpit log] ${line}`), append(line));
   }
   const client = new HerdrClient(() => resolveSocketPath(cfg().get<string>('socketPath')));
+  const remoteHosts = new Map<string, RemoteHost>();
+  const remoteTerms = new Map<string, vscode.Terminal>();
   // When did each agent enter its current state? (observed locally; Herdr exposes only a sequence number)
   const stateSince = new Map<string, { status?: AgentStatus; at: number }>();
   const showShells = () => cfg().get<boolean>('showShellPanes', true);
   const panel = new HerdrPanel(ctx.extensionUri, (a: PanelAction) => {
     const id = PANEL_COMMANDS[a.command];
-    if (id) vscode.commands.executeCommand(id, { spaceId: a.spaceId, paneId: a.paneId } satisfies Target);
-  });
+    if (id) vscode.commands.executeCommand(id, { hostId: a.hostId, spaceId: a.spaceId, paneId: a.paneId } satisfies Target);
+  }, ctx.workspaceState.get<PanelUiState>(PANEL_UI_KEY, { open: {}, shellsOpen: {}, expanded: {} }),
+  (state) => { void ctx.workspaceState.update(PANEL_UI_KEY, state); });
   const activity = new ActivityWatcher(client);
   const logoUri = (f: string) => vscode.Uri.joinPath(ctx.extensionUri, 'media', 'agent-logos', `${f}.svg`);
   /** The agent's logo as a tab / quick pick icon, or undefined when there's none. */
@@ -435,8 +444,8 @@ export function activate(ctx: vscode.ExtensionContext) {
   // ---------- sidebar ----------
   function render() {
     scheduleHubStatus();
-    panel.update(
-      buildViewState({
+    renderStatus();
+    const state = buildViewState({
         model,
         showShells: showShells(),
         since: (id) => stateSince.get(id)?.at,
@@ -446,8 +455,32 @@ export function activate(ctx: vscode.ExtensionContext) {
         activity: (id) => activity.get(id),
         usage,
         connection: { ...(conn as object), kind: conn.kind, expectedProtocol: HERDR_PROTOCOL } as ViewConnection,
-      }),
-    );
+      });
+    state.remotes = [...remoteHosts.values()].map((host) => {
+      const remoteState = buildViewState({
+        model: host.model,
+        showShells: showShells(),
+        since: () => undefined,
+        git: () => undefined,
+        mounted: () => false,
+        attached: (id) => !!remoteTerms.get(`${host.config.host}:${id}`),
+        activity: () => undefined,
+        usage: [],
+        connection: { kind: host.model ? 'connected' : 'down', expectedProtocol: HERDR_PROTOCOL },
+      });
+      for (const key of ['idle', 'working', 'blocked', 'done', 'unknown', 'agents', 'shells'] as const)
+        state.totals[key] += remoteState.totals[key];
+      const tagPane = (p: PaneView): PaneView => ({ ...p, hostId: host.config.host });
+      const spaces: SpaceView[] = remoteState.spaces.map((s) => ({ ...s, hostId: host.config.host,
+        agents: s.agents.map(tagPane), shells: s.shells.map(tagPane) }));
+      state.attention.push(...remoteState.attention.map(tagPane));
+      return { host: host.config.host, label: host.config.label || host.config.host,
+        connecting: host.connecting, error: host.error, spaces };
+    });
+    const attentionRank = { blocked: 0, done: 1 } as const;
+    state.attention.sort((a, b) =>
+      (attentionRank[a.status as 'blocked' | 'done'] ?? 2) - (attentionRank[b.status as 'blocked' | 'done'] ?? 2));
+    panel.update(state);
   }
   let renderTimer: NodeJS.Timeout | undefined;
   function scheduleRender() {
@@ -567,7 +600,9 @@ export function activate(ctx: vscode.ExtensionContext) {
   }
 
   function renderStatus() {
-    if (!isConnected() || !model) {
+    const localConnected = isConnected() && !!model;
+    const remoteAgents = [...remoteHosts.values()].flatMap((h) => h.model?.spaces.flatMap((s) => s.agents) ?? []);
+    if (!localConnected && ![...remoteHosts.values()].some((h) => !!h.model)) {
       // Nothing current to count: no stale badge or "blocked" color while Herdr is away.
       panel.badge = undefined;
       status.backgroundColor = undefined;
@@ -578,8 +613,8 @@ export function activate(ctx: vscode.ExtensionContext) {
       vscode.commands.executeCommand('setContext', 'herdr.connected', false);
       return;
     }
-    vscode.commands.executeCommand('setContext', 'herdr.connected', true);
-    const agents = model.spaces.flatMap((s) => s.agents);
+    vscode.commands.executeCommand('setContext', 'herdr.connected', localConnected);
+    const agents = [...(localConnected ? model!.spaces.flatMap((s) => s.agents) : []), ...remoteAgents];
     const count = (s: AgentStatus) => agents.filter((a) => a.status === s).length;
     const blocked = count('blocked');
     const done = count('done');
@@ -752,6 +787,97 @@ export function activate(ctx: vscode.ExtensionContext) {
     return paneOf(t) ?? (space && { space });
   };
 
+  // Remote hosts share the sidebar, but never use local paths, git readers or the local terminal stream.
+  const remoteHost = (t?: Target) => t?.hostId ? remoteHosts.get(t.hostId) : undefined;
+  async function chooseRemoteHost(t?: Target): Promise<RemoteHost | undefined> {
+    const direct = remoteHost(t);
+    if (direct) return direct;
+    const options = [...remoteHosts.values()].map((host) => ({ label: host.config.label || host.config.host,
+      description: host.config.host, host }));
+    if (!options.length) {
+      vscode.window.showInformationMessage('Add an SSH host to Herdr Cockpit first.', 'Add SSH Host').then((pick) => {
+        if (pick) vscode.commands.executeCommand('herdr.addRemoteHost');
+      });
+      return;
+    }
+    return (await vscode.window.showQuickPick(options, { title: 'Choose SSH host' }))?.host;
+  }
+  const remotePaneOf = (host: RemoteHost, paneId?: string): { space: Space; pane: Pane } | undefined => {
+    for (const space of host.model?.spaces ?? [])
+      for (const tab of space.tabs) {
+        const pane = tab.panes.find((p) => p.id === paneId);
+        if (pane) return { space, pane };
+      }
+  };
+  const remoteItemOf = (host: RemoteHost, t?: Target): { space: Space; pane?: Pane } | undefined =>
+    remotePaneOf(host, t?.paneId) ?? (host.model?.spaces.find((s) => s.id === t?.spaceId) &&
+      { space: host.model.spaces.find((s) => s.id === t?.spaceId)! });
+
+  async function attachRemote(host: RemoteHost, space: Space, pane: Pane): Promise<void> {
+    const key = `${host.config.host}:${pane.id}`;
+    const existing = remoteTerms.get(key);
+    if (existing && existing.exitStatus === undefined) return void existing.show();
+    const command = `${remoteEnvPrefix(host.socketPath)}${remoteQuote(host.config.binaryPath || 'herdr')} terminal attach ${remoteQuote(pane.terminalId)}`;
+    const terminal = vscode.window.createTerminal({
+      name: `${host.config.label || host.config.host}: ${paneName(space.tabs.find((t) => t.id === pane.tabId), pane)}`,
+      shellPath: 'ssh',
+      shellArgs: ['-tt', '-o', 'BatchMode=yes', host.config.host, command],
+      iconPath: agentIcon(pane.agentKind) ?? new vscode.ThemeIcon('remote'),
+      location: { viewColumn: vscode.ViewColumn.Active },
+    });
+    remoteTerms.set(key, terminal);
+    terminal.show();
+    render();
+  }
+
+  function remoteManage(host: RemoteHost): ManageDeps {
+    return {
+      actions: new HerdrActions(host.client),
+      async findPane(paneId) {
+        for (let i = 0; i < 15; i++) {
+          await host.refresh();
+          const hit = remotePaneOf(host, paneId);
+          if (hit) return hit;
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+      },
+      attach: (space, pane) => attachRemote(host, space, pane),
+      agentIcon,
+      spaces: () => host.model?.spaces ?? [],
+      branchOf: () => undefined,
+      agentNames: () => host.model?.spaces.flatMap((s) => s.agents.map((a) => a.raw.agent?.name).filter((n): n is string => !!n)) ?? [],
+      agents: () => cfg().get<string[]>('agents', ['claude', 'codex', 'kiro', 'cursor']),
+      renameTerminal: async () => undefined,
+      ensureConnected: async () => {
+        if (!host.model) await host.refresh();
+        if (host.model) return true;
+        vscode.window.showWarningMessage(`${host.config.label || host.config.host}: ${host.error || 'Herdr is unavailable'}`);
+        return false;
+      },
+      log: (message) => log.appendLine(`${host.config.host}: ${message}`),
+    };
+  }
+
+  function syncRemoteHosts() {
+    const configs = cfg().get<RemoteHostConfig[]>('remoteHosts', []);
+    const desired = new Map<string, RemoteHostConfig>();
+    for (const c of Array.isArray(configs) ? configs : [])
+      if (c && typeof c.host === 'string' && validHost(c.host)) desired.set(c.host, c);
+    for (const [id, host] of remoteHosts)
+      if (JSON.stringify(host.config) !== JSON.stringify(desired.get(id))) {
+        host.dispose();
+        remoteHosts.delete(id);
+      }
+    for (const [id, config] of desired)
+      if (!remoteHosts.has(id)) remoteHosts.set(id, new RemoteHost(config, scheduleRender));
+    scheduleRender();
+    void Promise.allSettled([...remoteHosts.values()].map((h) => h.refresh()));
+  }
+  syncRemoteHosts();
+  const remoteTimer = setInterval(() => {
+    if (panel.visible) void Promise.allSettled([...remoteHosts.values()].map((h) => h.refresh()));
+  }, 5000);
+
   /** Where a "+" terminal goes: the space of the Herdr terminal you're in, the one mounted space, Herdr's focused space, or ask. */
   async function targetSpace(): Promise<Space | undefined> {
     if (!model) await refresh();
@@ -776,6 +902,7 @@ export function activate(ctx: vscode.ExtensionContext) {
     panel.onDidChangeVisibility((visible) => {
       if (!visible) return;
       if (!isConnected()) kick();
+      void Promise.allSettled([...remoteHosts.values()].map((h) => h.refresh()));
       render();
       pollActivity();
       pollUsage();
@@ -783,16 +910,23 @@ export function activate(ctx: vscode.ExtensionContext) {
     vscode.window.onDidChangeWindowState((w) => w.focused && !isConnected() && kick()),
     status,
     terms,
-    { dispose: () => { clearTimeout(pollTimer); clearInterval(redrawTimer); clearInterval(activityTimer); clearInterval(usageTimer); clearTimeout(renderTimer); stopWatchingSocket(); sub?.dispose(); } },
+    { dispose: () => { clearTimeout(pollTimer); clearInterval(redrawTimer); clearInterval(activityTimer); clearInterval(usageTimer); clearInterval(remoteTimer); clearTimeout(renderTimer); stopWatchingSocket(); sub?.dispose(); for (const h of remoteHosts.values()) h.dispose(); } },
+    vscode.window.onDidCloseTerminal((term) => {
+      for (const [key, value] of remoteTerms) if (value === term) remoteTerms.delete(key);
+      scheduleRender();
+    }),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration('herdr')) return;
+      if (e.affectsConfiguration('herdr.remoteHosts')) syncRemoteHosts();
       render();
       if (e.affectsConfiguration('herdr.showShellPanes')) pollActivity();
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => render()),
     vscode.workspace.onDidGrantWorkspaceTrust(() => render()),
 
-    vscode.commands.registerCommand('herdr.refresh', () => kick()),
+    vscode.commands.registerCommand('herdr.refresh', async () => {
+      await Promise.allSettled([kick(), ...[...remoteHosts.values()].map((h) => h.refresh())]);
+    }),
     vscode.commands.registerCommand('herdr.startServer', () => startHerdr()),
     vscode.commands.registerCommand('herdr.openInstallDocs', () => vscode.env.openExternal(vscode.Uri.parse('https://herdr.dev'))),
     vscode.commands.registerCommand('herdr.copyDiagnostics', async () => {
@@ -826,6 +960,18 @@ export function activate(ctx: vscode.ExtensionContext) {
     }),
 
     vscode.commands.registerCommand('herdr.switchSpace', async (t?: Target) => {
+      const host = remoteHost(t);
+      if (host) {
+        const space = host.model?.spaces.find((s) => s.id === t?.spaceId);
+        if (!space) return;
+        try {
+          await host.client.request('workspace.focus', { workspace_id: space.id });
+          if (cfg().get<boolean>('autoAttachOnSwitch', true))
+            for (const pane of attachOrder(space, cfg().get<boolean>('autoAttachShells', true))) await attachRemote(host, space, pane);
+          await host.refresh();
+        } catch (e) { vscode.window.showErrorMessage(`${host.config.host}: ${e instanceof Error ? e.message : e}`); }
+        return;
+      }
       const sp = await spaceFrom(t);
       if (sp) await switchTo(sp);
     }),
@@ -841,10 +987,17 @@ export function activate(ctx: vscode.ExtensionContext) {
       }
     }),
     vscode.commands.registerCommand('herdr.attach', async (t?: Target) => {
+      const host = remoteHost(t);
+      if (host) {
+        const hit = remotePaneOf(host, t?.paneId);
+        if (hit) await attachRemote(host, hit.space, hit.pane);
+        return;
+      }
       const hit = paneOf(t);
       if (hit) await attachPane(hit.space, hit.pane);
     }),
     vscode.commands.registerCommand('herdr.reviewChanges', async (t?: Target) => {
+      if (remoteHost(t)) return vscode.commands.executeCommand('herdr.openRemoteWorkspace', t);
       const hit = paneOf(t);
       if (hit) return reviewChanges(hit.pane.cwd ?? hit.space.cwd, hit.pane.label);
       const sp = await spaceFrom(t);
@@ -871,21 +1024,103 @@ export function activate(ctx: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('herdr.newSpace', () => newSpace(manage)),
     vscode.commands.registerCommand('herdr.newTab', async (t?: Target) => {
+      const host = remoteHost(t);
+      if (host) {
+        const space = host.model?.spaces.find((s) => s.id === t?.spaceId);
+        if (space) await newTab(remoteManage(host), space);
+        return;
+      }
       const sp = await spaceFrom(t);
       if (sp) await newTab(manage, sp);
     }),
     vscode.commands.registerCommand('herdr.rename', async (t?: Target) => {
+      const host = remoteHost(t);
+      if (host) {
+        const item = remoteItemOf(host, t);
+        if (item) { await rename(remoteManage(host), item); await host.refresh(); }
+        return;
+      }
       const it = itemOf(t);
       if (it) await rename(manage, it);
     }),
     vscode.commands.registerCommand('herdr.closeInHerdr', async (t?: Target) => {
+      const host = remoteHost(t);
+      if (host) {
+        const item = remoteItemOf(host, t);
+        if (item) { await closeInHerdr(remoteManage(host), item); await host.refresh(); }
+        return;
+      }
       const it = itemOf(t);
       if (it) await closeInHerdr(manage, it);
     }),
     vscode.commands.registerCommand('herdr.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${ctx.extension.id}`),
     ),
+    vscode.commands.registerCommand('herdr.addRemoteHost', async () => {
+      const host = await vscode.window.showInputBox({
+        title: 'Add SSH host', prompt: 'SSH config host alias (Herdr must be running there)',
+        placeHolder: 'my-server',
+        validateInput: (value) => validHost(value.trim()) ? undefined : 'Use an SSH host alias with letters, digits, dots, _ or -',
+      });
+      if (!host?.trim()) return;
+      const id = host.trim();
+      const existing = cfg().get<RemoteHostConfig[]>('remoteHosts', []);
+      if (existing.some((item) => item.host === id)) return void vscode.window.showInformationMessage(`${id} is already in Herdr remote hosts.`);
+      await cfg().update('remoteHosts', [...existing, { host: id }], vscode.ConfigurationTarget.Global);
+    }),
+    vscode.commands.registerCommand('herdr.removeRemoteHost', async (t?: Target) => {
+      const host = await chooseRemoteHost(t);
+      if (!host) return;
+      const pick = await vscode.window.showWarningMessage(`Remove ${host.config.label || host.config.host} from Herdr Cockpit?`,
+        { modal: true, detail: 'Herdr and its agents keep running on the SSH host.' }, 'Remove Host');
+      if (pick !== 'Remove Host') return;
+      await cfg().update('remoteHosts', cfg().get<RemoteHostConfig[]>('remoteHosts', []).filter((c) => c.host !== host.config.host), vscode.ConfigurationTarget.Global);
+    }),
+    vscode.commands.registerCommand('herdr.openRemoteWorkspace', async (t?: Target) => {
+      const host = await chooseRemoteHost(t);
+      if (!host) return;
+      let space = host.model?.spaces.find((s) => s.id === t?.spaceId);
+      if (!space) space = (await vscode.window.showQuickPick(
+        (host.model?.spaces ?? []).filter((s) => s.cwd).map((s) => ({ label: s.label, description: s.cwd, space: s })),
+        { title: `Open workspace on ${host.config.label || host.config.host}` }))?.space;
+      if (!space?.cwd) return;
+      const uri = vscode.Uri.from({ scheme: 'vscode-remote', authority: `ssh-remote+${host.config.host}`, path: space.cwd });
+      try { await vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: true }); }
+      catch (e) { vscode.window.showErrorMessage(`Could not open ${space.label} with Remote-SSH: ${e instanceof Error ? e.message : e}`); }
+    }),
+    vscode.commands.registerCommand('herdr.newRemoteSpace', async (t?: Target) => {
+      const host = await chooseRemoteHost(t);
+      if (!host) return;
+      const deps = remoteManage(host);
+      if (!(await deps.ensureConnected())) return;
+      const cwd = await vscode.window.showInputBox({ title: `New space on ${host.config.label || host.config.host}`,
+        prompt: 'Existing absolute folder path on the SSH host', placeHolder: '/home/user/project',
+        validateInput: (value) => value.startsWith('/') && !value.includes('\0') ? undefined : 'Enter an absolute Unix path' });
+      if (!cwd) return;
+      const label = await vscode.window.showInputBox({ title: 'Space name', value: path.posix.basename(cwd),
+        validateInput: (value) => value.trim() ? undefined : 'Enter a name' });
+      if (!label?.trim()) return;
+      const what = await pickWhat(deps, `Start in ${label}`);
+      if (!what) return;
+      try {
+        const created = await deps.actions.createSpace({ cwd, label: label.trim() });
+        if (what.label || what.kind) await deps.actions.renameTab(created.tab.tab_id, what.label || what.kind!);
+        const hit = await deps.findPane(created.pane.pane_id);
+        if (hit) {
+          await attachRemote(host, hit.space, hit.pane);
+          if (what.kind) startAgent(deps, hit.pane.id, what.kind, label);
+        }
+        await host.refresh();
+      } catch (e) { vscode.window.showErrorMessage(`${host.config.host}: ${e instanceof Error ? e.message : e}`); }
+    }),
     vscode.commands.registerCommand('herdr.showRaw', async (t?: Target) => {
+      const host = remoteHost(t);
+      if (host) {
+        const hit = remotePaneOf(host, t?.paneId);
+        const raw = hit ? hit.pane.raw : host.model?.spaces.find((s) => s.id === t?.spaceId)?.raw;
+        if (raw) vscode.window.showTextDocument(await vscode.workspace.openTextDocument({ language: 'json', content: JSON.stringify(raw, null, 2) }));
+        return;
+      }
       const hit = paneOf(t);
       const raw = hit ? { pane: hit.pane.raw.pane, agent: hit.pane.raw.agent, activity: activity.get(hit.pane.id) } : model?.spaces.find((s) => s.id === t?.spaceId)?.raw;
       if (!raw) return;
@@ -893,13 +1128,19 @@ export function activate(ctx: vscode.ExtensionContext) {
       vscode.window.showTextDocument(doc);
     }),
     vscode.commands.registerCommand('herdr.focusAttention', async () => {
-      if (!model) return refresh();
       const rank: AgentStatus[] = ['blocked', 'done'];
-      for (const s of rank)
-        for (const sp of model.spaces) {
+      for (const s of rank) {
+        for (const sp of model?.spaces ?? []) {
           const a = sp.agents.find((x) => x.status === s);
           if (a) return attachPane(sp, a);
         }
+        for (const host of remoteHosts.values())
+          for (const space of host.model?.spaces ?? []) {
+            const pane = space.agents.find((a) => a.status === s);
+            if (pane) return attachRemote(host, space, pane);
+          }
+      }
+      if (!model) return refresh();
       vscode.window.showInformationMessage('Herdr: no agent needs attention right now.');
     }),
     vscode.commands.registerCommand('herdr.openTui', () => {

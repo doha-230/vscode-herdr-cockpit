@@ -1,10 +1,10 @@
-# Herdr Cockpit — Windows Connection Fix
+# Herdr Cockpit — Local and SSH Hosts
 
 English first · [한국어 안내](#한국어)
 
-Manage Herdr spaces, agents and terminals in VS Code. This fork of [the original Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit) fixes **Windows connections that failed even while the Herdr server was running**.
+Manage Herdr spaces, agents and terminals in VS Code, including local and configured SSH hosts in one sidebar. This fork of [the original Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit) also fixes **Windows connections that failed even while the Herdr server was running**.
 
-[**Download v0.2.2 VSIX**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.2.2/herdr-cockpit-0.2.2.vsix) · [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases)
+[**Download v0.3.0 VSIX**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-0.3.0.vsix) · [한국어 HTML 매뉴얼](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-manual-ko.html) · [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases).
 
 ## What we fixed
 
@@ -67,11 +67,11 @@ npm run package
 
 The package is written to `herdr-cockpit-<version>.vsix`. The full `npm test` suite includes Unix executable and shell fixtures and is validated in Linux/macOS CI.
 
-A `package.json` version change pushed to `main`, or a matching version tag, triggers the Release workflow. It tests, packages and creates a GitHub release with a versioned VSIX and the stable filename `herdr-cockpit.vsix`. Forks must enable **GitHub Actions** first.
+A `package.json` version change pushed to `main`, or a matching version tag, triggers the Release workflow. It tests, packages and creates a GitHub release with a versioned VSIX, the stable filename `herdr-cockpit.vsix`, and the standalone Korean HTML manual. Forks must enable **GitHub Actions** first.
 
 ## Repository summary / 저장소 설명
 
-Windows connection fixes for Herdr Cockpit in VS Code: named pipes, socket paths and VSIX releases. | VS Code용 Herdr Cockpit Windows 연결 수정: named pipe·소켓 경로·VSIX 릴리즈.
+Herdr Cockpit in VS Code with local and SSH host management, Windows named pipe fixes and VSIX builds. | 로컬·SSH 서버 동시 관리, Windows named pipe 연결 수정, VSIX 빌드.
 
 ## Upstream features and usage
 
@@ -114,7 +114,7 @@ The upstream extension works in **VS Code, Cursor, Kiro and Positron** on **macO
 
 ## Requirements
 
-- Herdr 0.9 (socket protocol 22; tested with 0.9.1), running on the same machine as the extension. A newer protocol shows an "incompatible" screen until Herdr Cockpit is updated. With Remote-SSH, the extension runs on the server next to Herdr.
+- Herdr 0.9 (socket protocol 22; tested with 0.9.1) on the extension host and on each configured SSH host. A newer protocol needs a Cockpit update. In a Remote-SSH window, the extension host is the server; use a local VS Code window to aggregate your desktop and SSH hosts.
 - macOS or Linux for the upstream feature set; Windows connection support in this fork is described above.
 
 ## Get started
@@ -144,6 +144,23 @@ See [plugin/README.md](plugin/README.md).
 
 ## Settings
 
+### Local and SSH hosts in one sidebar
+
+Run **Herdr Cockpit: Add SSH Host…** or use **Add SSH host…** at the bottom of the sidebar. Remove a host with its **×** button or **Herdr Cockpit: Remove SSH Host…**. Enter an alias from your `~/.ssh/config`. SSH key authentication must work without a prompt (`ssh -o BatchMode=yes my-server`), and Herdr must already be running on the remote Linux/macOS host. OpenSSH, including your configured port, identity and jump host, is used for a local TCP tunnel to the remote Unix socket. The remote Herdr socket is never exposed on a public network interface.
+
+For more control, set the machine setting directly:
+
+```json
+"herdr.remoteHosts": [
+  { "host": "my-server", "label": "Build server" },
+  { "host": "lab", "binaryPath": "/home/me/.local/bin/herdr", "socketPath": "/home/me/.config/herdr/herdr.sock" }
+]
+```
+
+The sidebar groups spaces by machine and includes remote agents in the totals and **Needs you** list. Click a remote space to focus it in Herdr and open its panes as SSH terminal tabs. You can create tabs and spaces, start agents, rename and close remote items in the same sidebar. **Open folder** uses the VS Code Remote-SSH extension to open the remote path in another window for Explorer, Git and diffs. Remote usage and Git data are shown in that Remote-SSH window, not in the aggregated local sidebar. SSH hosts require Unix sockets; Windows remote hosts are not supported by this tunnel.
+
+Expanded spaces, shell groups, agent details and the Usage section are saved per workspace and restored when the same workspace is reopened. The SSH tunnel test runs on Linux with a simulated SSH server; a live Windows SSH client to Linux/macOS host has not yet been validated.
+
 All settings start with `herdr.`; the guide (`?` in the sidebar) lists them. Most used:
 
 | Setting | |
@@ -157,7 +174,7 @@ All settings start with `herdr.`; the guide (`?` in the sidebar) lists them. Mos
 
 ## Privacy and security
 
-Nothing leaves your machine. Herdr Cockpit talks to your local Herdr server, runs read-only git in trusted windows, and reads usage from your agents' local files (never credentials). See [SECURITY.md](SECURITY.md).
+By default, Herdr Cockpit talks only to your local Herdr server. Configured SSH hosts are contacted through OpenSSH, which carries Herdr requests over an encrypted tunnel. The extension runs read-only git in trusted windows and reads usage from agents' local files (never credentials). See [SECURITY.md](SECURITY.md).
 
 ## Development
 
@@ -174,7 +191,24 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` needs no editor.
 
 Herdr의 작업 공간과 에이전트, 터미널을 VS Code에서 사용하는 확장 프로그램입니다. 이 저장소는 [원본 Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit)을 기반으로, **Windows에서 서버가 실행 중인데도 확장이 연결되지 않던 문제**를 수정한 포크입니다.
 
-[**v0.2.2 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.2.2/herdr-cockpit-0.2.2.vsix) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases)
+[**v0.3.0 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-0.3.0.vsix) · [HTML 사용 설명서](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-manual-ko.html) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases).
+
+### 로컬과 SSH 서버를 한 화면에서 관리
+
+명령 팔레트에서 **Herdr Cockpit: Add SSH Host…**를 실행하고 `~/.ssh/config`의 호스트 별칭을 입력합니다. 원격 Linux/macOS 서버에서 Herdr가 실행 중이어야 하며, `ssh -o BatchMode=yes 호스트별칭`이 암호 입력 없이 연결되어야 합니다. 사이드바에 로컬과 각 원격 서버의 공간·에이전트 상태가 함께 표시됩니다. 원격 공간과 탭 열기, 에이전트 시작, 이름 변경, 종료, 새 공간 만들기를 사이드바에서 조작할 수 있습니다. **Open folder**는 파일 탐색·Git·diff를 위해 별도의 VS Code Remote-SSH 창을 엽니다.
+
+설정에서 별칭과 원격 실행 파일·소켓 경로를 직접 지정할 수도 있습니다:
+
+```json
+"herdr.remoteHosts": [
+  { "host": "my-server", "label": "작업 서버" },
+  { "host": "lab", "binaryPath": "/home/me/.local/bin/herdr" }
+]
+```
+
+로컬 VS Code 창에서 확장을 실행해야 데스크톱과 SSH 서버가 함께 보입니다. Remote-SSH 창에서 확장이 실행되면 그 서버가 로컬로 간주됩니다. 원격 사용량과 Git 정보는 해당 Remote-SSH 창에서 확인합니다. 원격 연결에는 Unix 소켓을 사용하므로 Windows 원격 서버는 현재 지원하지 않습니다.
+
+공간·셸 그룹·에이전트 상세 정보·사용량 영역의 접기 상태는 작업 공간별로 저장되어 같은 작업 공간을 다시 열면 복원됩니다. SSH 터널은 Linux에서 모의 SSH 서버로 테스트했으며, Windows SSH 클라이언트에서 실제 원격 서버까지 연결하는 검증은 아직 하지 않았습니다.
 
 ### 우리가 해결한 문제
 

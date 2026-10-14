@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+<rect x="0" y="0" width="1440" height="1000" rx="0" fill="#101218"/>
+<rect x="24" y="24" width="1392" height="834" rx="12" fill="#1b1f27" stroke="#404653" stroke-width="1.5"/>
+<rect x="24" y="24" width="1392" height="46" rx="12" fill="#252a33"/>
+<rect x="24" y="57" width="1392" height="13" rx="0" fill="#252a33"/>
+<circle cx="51" cy="47" r="7" fill="#e66c65"/>
+<circle cx="74" cy="47" r="7" fill="#e7bd57"/>
+<circle cx="97" cy="47" r="7" fill="#6bc68a"/>
+<text x="720" y="54" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="600" fill="#bcc4d0" text-anchor="middle">Herdr Cockpit — local + SSH hosts</text>
+<rect x="24" y="70" width="55" height="752" rx="0" fill="#20242d"/>
+<rect x="42" y="108" width="19" height="19" rx="4" fill="none" stroke="#9fa8b8" stroke-width="2"/>
+<rect x="42" y="158" width="19" height="19" rx="4" fill="none" stroke="#747e8f" stroke-width="2"/>
+<rect x="42" y="208" width="19" height="19" rx="4" fill="none" stroke="#747e8f" stroke-width="2"/>
+<rect x="42" y="258" width="19" height="19" rx="4" fill="none" stroke="#5cbde3" stroke-width="2"/>
+<rect x="42" y="308" width="19" height="19" rx="4" fill="none" stroke="#747e8f" stroke-width="2"/>
+<line x1="78" y1="70" x2="78" y2="823" stroke="#383e49" stroke-width="1"/>
+<rect x="79" y="70" width="859" height="752" rx="0" fill="#191d24"/>
+<rect x="79" y="70" width="859" height="46" rx="0" fill="#222731"/>
+<rect x="103" y="81" width="278" height="35" rx="6" fill="#2e3541"/>
+<text x="120" y="104" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="14" font-weight="600" fill="#eef2f8" text-anchor="start">api-service — SSH: build-server</text>
+<rect x="102" y="142" width="810" height="54" rx="8" fill="#202630" stroke="#35404e" stroke-width="1"/>
+<text x="123" y="164" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="600" fill="#7fc5d9" text-anchor="start">Remote pane opened in this VS Code window</text>
+<text x="123" y="183" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="400" fill="#aeb9c9" text-anchor="start">build-server  /srv/api-service  ·  Claude</text>
+<rect x="102" y="213" width="810" height="535" rx="10" fill="#10161e" stroke="#343e4b" stroke-width="1"/>
+<rect x="102" y="213" width="810" height="43" rx="10" fill="#202833"/>
+<rect x="102" y="245" width="810" height="11" rx="0" fill="#202833"/>
+<text x="127" y="240" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="700" fill="#c9d2df" text-anchor="start">TERMINAL</text>
+<rect x="231" y="220" width="249" height="27" rx="6" fill="#30404d"/>
+<text x="247" y="239" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="600" fill="#eaf4fa" text-anchor="start">build-server: Claude</text>
+<text x="127" y="291" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="16" font-weight="400" fill="#93c5a7" text-anchor="start">$ ssh build-server</text>
+<text x="127" y="322" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="16" font-weight="400" fill="#cbd5e1" text-anchor="start">Herdr · api-service · Claude</text>
+<text x="127" y="368" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="16" font-weight="600" fill="#f5c56d" text-anchor="start">› Waiting for approval</text>
+<text x="127" y="403" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="400" fill="#dce4ec" text-anchor="start">  Apply the API migration?</text>
+<text x="127" y="441" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="400" fill="#8dd5b0" text-anchor="start">  1. Yes, continue</text>
+<text x="127" y="470" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="400" fill="#aeb9c9" text-anchor="start">  2. No</text>
+<rect x="120" y="683" width="329" height="36" rx="6" fill="#1c2933" stroke="#417a91" stroke-width="1"/>
+<text x="133" y="707" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="400" fill="#88d4e9" text-anchor="start">SSH terminal attached to remote pane</text>
+<rect x="938" y="70" width="478" height="752" rx="0" fill="#20242d"/>
+<line x1="938" y1="70" x2="938" y2="823" stroke="#38414d" stroke-width="1"/>
+<rect x="938" y="70" width="478" height="50" rx="0" fill="#292e38"/>
+<text x="959" y="102" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="700" fill="#e4e9f0" text-anchor="start">HERDR COCKPIT</text>
+<text x="1350" y="102" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="18" font-weight="400" fill="#a8b3c2" text-anchor="start">↻    ⚙</text>
+<rect x="952" y="133" width="450" height="41" rx="6" fill="#252b35"/>
+<rect x="962" y="140" width="107" height="27" rx="13" fill="#453927"/>
+<text x="974" y="159" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="600" fill="#f3bd67" text-anchor="start">● 1 blocked</text>
+<rect x="1077" y="140" width="102" height="27" rx="13" fill="#2b4434"/>
+<text x="1089" y="159" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="600" fill="#9fd49f" text-anchor="start">✓ 1 done</text>
+<rect x="1187" y="140" width="112" height="27" rx="13" fill="#2a4052"/>
+<text x="1199" y="159" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="600" fill="#8cc9f0" text-anchor="start">↻ 2 working</text>
+<text x="959" y="207" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="700" fill="#a4aebd" text-anchor="start">NEEDS YOU</text>
+<rect x="953" y="221" width="448" height="93" rx="8" fill="#2b303a" stroke="#4a515f" stroke-width="1"/>
+<rect x="953" y="221" width="4" height="93" rx="2" fill="#f1b65e"/>
+<circle cx="981" cy="255" r="15" fill="#8d653c"/>
+<text x="981" y="261" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="700" fill="#fff2dc" text-anchor="middle">C</text>
+<text x="1009" y="252" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="700" fill="#f3f5f7" text-anchor="start">Claude</text>
+<text x="1344" y="252" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="600" fill="#f3bd67" text-anchor="end">Blocked</text>
+<text x="1009" y="275" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#b6beca" text-anchor="start">build-server · api-service</text>
+<text x="1009" y="298" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#dce1e8" text-anchor="start">Waiting for approval</text>
+<text x="959" y="348" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="700" fill="#9eacbc" text-anchor="start">LOCAL · SPACES</text>
+<rect x="953" y="359" width="448" height="150" rx="8" fill="#292e38" stroke="#3d4651" stroke-width="1"/>
+<rect x="953" y="359" width="4" height="150" rx="2" fill="#79b5ed"/>
+<text x="971" y="388" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="17" font-weight="400" fill="#b3bcc9" text-anchor="start">⌄</text>
+<text x="995" y="387" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="700" fill="#f0f3f8" text-anchor="start">website</text>
+<circle cx="1365" cy="380" r="4" fill="#78b6ef"/>
+<text x="981" y="413" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#a9b8c8" text-anchor="start">⌁  main    ✓ clean</text>
+<line x1="967" y1="425" x2="1387" y2="425" stroke="#39414d" stroke-width="1"/>
+<circle cx="983" cy="450" r="13" fill="#5078aa"/>
+<text x="983" y="455" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">C</text>
+<text x="1008" y="449" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="14" font-weight="600" fill="#e8edf5" text-anchor="start">Codex</text>
+<text x="1358" y="449" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="600" fill="#80c5ef" text-anchor="end">Working</text>
+<text x="1008" y="470" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#aeb9c8" text-anchor="start">Updating dashboard layout</text>
+<text x="977" y="495" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#aab6c4" text-anchor="start">+  New tab</text>
+<text x="959" y="537" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="700" fill="#9eacbc" text-anchor="start">BUILD SERVER</text>
+<text x="1353" y="538" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="22" font-weight="600" fill="#99cce9" text-anchor="start">+</text>
+<text x="1381" y="538" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="21" font-weight="400" fill="#aeb8c5" text-anchor="start">×</text>
+<rect x="953" y="548" width="448" height="229" rx="8" fill="#292e38" stroke="#507086" stroke-width="1.5"/>
+<rect x="953" y="548" width="4" height="229" rx="2" fill="#52c7d8"/>
+<text x="971" y="578" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="17" font-weight="400" fill="#b3bcc9" text-anchor="start">⌄</text>
+<text x="995" y="577" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="15" font-weight="700" fill="#f0f3f8" text-anchor="start">api-service</text>
+<circle cx="1365" cy="570" r="4" fill="#f3bd67"/>
+<text x="979" y="601" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#a9b8c8" text-anchor="start">/srv/api-service</text>
+<rect x="1190" y="586" width="115" height="24" rx="5" fill="#304551" stroke="#54798b" stroke-width="1"/>
+<text x="1200" y="603" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="11" font-weight="600" fill="#9bdfec" text-anchor="start">↗ Open folder</text>
+<line x1="967" y1="617" x2="1387" y2="617" stroke="#39414d" stroke-width="1"/>
+<circle cx="983" cy="646" r="13" fill="#8d653c"/>
+<text x="983" y="651" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">C</text>
+<text x="1008" y="646" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="14" font-weight="600" fill="#e8edf5" text-anchor="start">Claude</text>
+<text x="1355" y="646" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="600" fill="#f2bd68" text-anchor="end">Blocked</text>
+<text x="1008" y="665" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#aeb9c8" text-anchor="start">Waiting for approval</text>
+<line x1="967" y1="679" x2="1387" y2="679" stroke="#39414d" stroke-width="1"/>
+<text x="979" y="703" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="600" fill="#bac5d3" text-anchor="start">⌄  Shells · 1</text>
+<text x="1008" y="724" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#aeb9c8" text-anchor="start">$ npm run dev</text>
+<rect x="969" y="739" width="414" height="28" rx="5" fill="none" stroke="#4a5765" stroke-width="1.2"/>
+<text x="981" y="758" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="12" font-weight="400" fill="#b0bdcb" text-anchor="start">+  New tab</text>
+<text x="959" y="807" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="600" fill="#86cfec" text-anchor="start">+  Add SSH host…</text>
+<rect x="24" y="822" width="1392" height="36" rx="0" fill="#316393"/>
+<text x="43" y="846" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="600" fill="#f2f8ff" text-anchor="start">SSH: build-server</text>
+<text x="1260" y="846" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="13" font-weight="400" fill="#f2f8ff" text-anchor="start">Herdr Cockpit</text>
+<circle cx="923" cy="348" r="14" fill="#7ab9e8"/>
+<text x="923" y="353" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="14" font-weight="700" fill="#101318" text-anchor="middle">1</text>
+<circle cx="923" cy="575" r="14" fill="#58c9d7"/>
+<text x="923" y="580" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="14" font-weight="700" fill="#101318" text-anchor="middle">2</text>
+<circle cx="1177" cy="599" r="14" fill="#9fd49f"/>
+<text x="1177" y="604" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="14" font-weight="700" fill="#101318" text-anchor="middle">3</text>
+<circle cx="923" cy="799" r="14" fill="#c9a7f4"/>
+<text x="923" y="804" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="14" font-weight="700" fill="#101318" text-anchor="middle">4</text>
+<text x="24" y="902" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="22" font-weight="700" fill="#edf2f8" text-anchor="start">동작 UI 예시</text>
+<text x="24" y="932" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="16" font-weight="400" fill="#c6d0dd" text-anchor="start">① 로컬·원격 공간 동시 확인     ② 원격 공간 클릭 → 포커스·터미널 연결</text>
+<text x="24" y="962" font-family="WenQuanYi Zen Hei,DejaVu Sans,sans-serif" font-size="16" font-weight="400" fill="#c6d0dd" text-anchor="start">③ Open folder → Remote-SSH 창     ④ SSH 호스트 추가·제거</text>
+</svg>

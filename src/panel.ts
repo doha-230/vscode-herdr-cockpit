@@ -6,8 +6,16 @@ import type { ViewState } from './viewState';
 
 export interface PanelAction {
   command: string;
+  hostId?: string;
   spaceId?: string;
   paneId?: string;
+}
+
+export interface PanelUiState {
+  open: Record<string, boolean>;
+  shellsOpen: Record<string, boolean>;
+  expanded: Record<string, boolean>;
+  usageOpen?: boolean;
 }
 
 export class HerdrPanel implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -22,6 +30,8 @@ export class HerdrPanel implements vscode.WebviewViewProvider, vscode.Disposable
   constructor(
     private extensionUri: vscode.Uri,
     private onAction: (a: PanelAction) => void,
+    private uiState: PanelUiState,
+    private onUiState: (state: PanelUiState) => void,
   ) {}
 
   get visible(): boolean {
@@ -40,9 +50,16 @@ export class HerdrPanel implements vscode.WebviewViewProvider, vscode.Disposable
     view.webview.html = this.html(view.webview, media);
     this.subs.push(
       view.webview.onDidReceiveMessage((m) => {
-        if (m?.type === 'ready') this.flush(true);
+        if (m?.type === 'ready') {
+          view.webview.postMessage({ type: 'uiState', state: this.uiState });
+          this.flush(true);
+        }
+        else if (m?.type === 'uiState' && this.validUiState(m.state)) {
+          this.uiState = m.state;
+          this.onUiState(this.uiState);
+        }
         else if (m?.type === 'cmd' && typeof m.command === 'string')
-          this.onAction({ command: m.command, spaceId: m.spaceId, paneId: m.paneId });
+          this.onAction({ command: m.command, hostId: m.hostId, spaceId: m.spaceId, paneId: m.paneId });
       }),
       view.onDidChangeVisibility(() => {
         if (view.visible) this.flush(true);
@@ -54,6 +71,15 @@ export class HerdrPanel implements vscode.WebviewViewProvider, vscode.Disposable
       }),
     );
     this.visibility.fire(view.visible);
+  }
+
+  private validUiState(state: unknown): state is PanelUiState {
+    if (!state || typeof state !== 'object') return false;
+    const s = state as Record<string, unknown>;
+    const validMap = (map: unknown) => !!map && typeof map === 'object' &&
+      Object.entries(map).length <= 2000 && Object.values(map).every((value) => typeof value === 'boolean');
+    return validMap(s.open) && validMap(s.shellsOpen) && validMap(s.expanded) &&
+      (s.usageOpen === undefined || typeof s.usageOpen === 'boolean');
   }
 
   update(state: ViewState) {

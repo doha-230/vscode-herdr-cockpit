@@ -85,6 +85,13 @@ button.stat:hover { background: color-mix(in srgb, var(--c) 26%, transparent); }
   padding: 0 6px; border-radius: 999px;
   background: var(--vscode-badge-background); color: var(--vscode-badge-foreground);
 }
+.remote-error {
+  display: flex; align-items: center; gap: 6px;
+  margin: 4px 10px; padding: 7px 8px;
+  color: var(--vscode-errorForeground, var(--muted));
+  border: 1px solid var(--card-border); border-radius: var(--radius);
+  overflow-wrap: anywhere;
+}
 
 /* ---------- space cards ---------- */
 .spaces { padding: 4px 0 12px; }

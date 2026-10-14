@@ -13,6 +13,7 @@ import { agentTitle } from './herdrActions';
 
 export interface PaneView {
   id: string;
+  hostId?: string;
   spaceId: string;
   kind: 'agent' | 'shell';
   /** Agents: "Claude", "Kiro", or Herdr's display name. Shells: pane label, tab name or command. */
@@ -50,6 +51,7 @@ export interface PaneView {
 
 export interface SpaceView {
   id: string;
+  hostId?: string;
   label: string;
   /** cwd with the home directory shortened to ~ */
   path?: string;
@@ -89,6 +91,7 @@ export interface ViewState {
   /** Blocked agents first, then done; oldest first within each. */
   attention: PaneView[];
   spaces: SpaceView[];
+  remotes?: { host: string; label: string; connecting: boolean; error?: string; spaces: SpaceView[] }[];
   /** Plan usage of the coding agents with local data (Claude Code, Codex, Kiro). */
   usage: ProviderUsage[];
 }

@@ -6,9 +6,10 @@ Please report security issues privately through GitHub: **Security → Report a 
 
 ## What the extension and plugin do
 
-Herdr Cockpit is a client of your local Herdr server. It never runs agents itself.
+Herdr Cockpit is a client of Herdr servers on this machine and on SSH hosts you explicitly configure. It never runs agents itself.
 
 - **Herdr**: talks to Herdr's socket (`~/.config/herdr/herdr.sock` or a named session's). It creates, renames and closes spaces, tabs and panes only when you ask, with a confirmation before anything is closed.
+- **SSH hosts**: `herdr.remoteHosts` is machine-scoped. The extension runs `ssh` with `BatchMode=yes` to read Herdr's status and forward a loopback TCP port to the remote Unix socket. Host aliases are validated before use. Remote terminal tabs run `herdr terminal attach` through SSH. The SSH client uses your existing SSH configuration and keys; the extension does not read private keys.
 - **Git**: runs read-only `git status` / `git log` in your spaces' folders, only in trusted windows, with repository-defined programs disabled (fsmonitor, filters, hooks, signature checks, lazy fetches).
 - **Programs it starts**: `herdr` (streaming panes into terminal tabs, starting the server when you click Start Herdr) and, while a Codex pane is open, `codex app-server` to read your plan limits. `herdr.binaryPath` and `herdr.socketPath` are machine-scoped, so a repository's settings can't choose them.
 - **Files it reads**: usage data from `~/.codex/sessions`, `~/.claude/projects` and Kiro's session files (only the metering fields). It never reads credentials.

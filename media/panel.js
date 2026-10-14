@@ -5,7 +5,10 @@
 (function () {
   // @ts-ignore provided by VS Code
   const vscode = acquireVsCodeApi();
-  const saved = vscode.getState() || {};
+  const previous = vscode.getState();
+  const saved = previous || {};
+  const hadSavedState = !!previous;
+  let interacted = false;
   /** @type {{ open: Record<string, boolean>, shellsOpen: Record<string, boolean>, expanded: Record<string, boolean>, usageOpen?: boolean }} */
   const ui = { open: saved.open || {}, shellsOpen: saved.shellsOpen || {}, expanded: saved.expanded || {}, usageOpen: saved.usageOpen };
   const app = /** @type {HTMLElement} */ (document.getElementById('app'));
@@ -34,6 +37,7 @@
 
   const esc = (/** @type {unknown} */ s) =>
     String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c);
+  const uiKey = (/** @type {string|undefined} */ host, /** @type {string} */ id) => `${host ? `remote:${host}` : 'local'}:${id}`;
   const icon = (/** @type {string} */ name, cls = '') => `<span class="codicon codicon-${name} ${cls}"></span>`;
   const ctx = (/** @type {object} */ o) => esc(JSON.stringify({ ...o, preventDefaultContextMenuItems: true }));
 
@@ -71,7 +75,7 @@
         return `<${tag} class="stat st-${s}"${act}>${icon(STATUS[s].icon, s === 'working' ? 'spin' : '')}<span class="n">${t[s]}</span> ${s}</${tag}>`;
       })
       .join('');
-    const quiet = `<span class="stat quiet">${state.spaces.length} spaces · ${t.agents} agents</span>`;
+    const quiet = `<span class="stat quiet">${state.spaces.length + (state.remotes || []).reduce((n, r) => n + r.spaces.length, 0)} spaces · ${t.agents} agents</span>`;
     return `<div class="top">
       <div class="stats">${stats || quiet}</div>
       <div class="tools">
@@ -113,15 +117,15 @@
     const s = esc(p.status || 'unknown');
     const logo = agentLogo(p.agentKind);
     const initial = esc((p.agentKind || p.name || '?').charAt(0).toUpperCase());
-    const open = !!opts.attention || !!ui.expanded[p.id];
+    const open = !!opts.attention || !!ui.expanded[uiKey(p.hostId, p.id)];
     // Blocked/done agents show their screen; others the gist of their last reply. Never both.
     const story = p.preview.length ? lines(p.preview) : p.headline && p.headline !== p.detail ? `<div class="headline">${esc(p.headline)}</div>` : '';
     const body = open
       ? `${p.detail ? `<div class="sub">${esc(p.detail)}</div>` : ''}${story}${extras(p, p.agentKind && p.agentKind.toLowerCase() !== p.name.toLowerCase() ? [`<span class="chip">${icon('hubot')}${esc(p.agentKind)}</span>`] : [])}`
       : p.detail || p.headline ? `<div class="sub">${esc(p.detail || p.headline)}</div>` : '';
     return `<div class="row agent st-${s}${p.focused ? ' herdr-focused' : ''}${open ? ' open' : ''}" tabindex="0" data-nav data-act="attach"
-        data-space="${esc(p.spaceId)}" data-pane="${esc(p.id)}" data-key="pane:${esc(p.id)}"
-        data-vscode-context="${ctx({ webviewSection: 'agent', spaceId: p.spaceId, paneId: p.id })}"
+        data-host="${esc(p.hostId || '')}" data-space="${esc(p.spaceId)}" data-pane="${esc(p.id)}" data-key="pane:${esc(uiKey(p.hostId, p.id))}"
+        data-vscode-context="${ctx({ webviewSection: p.hostId ? 'remote-agent' : 'agent', hostId: p.hostId, spaceId: p.spaceId, paneId: p.id })}"
         title="${esc(`${p.name} · ${p.id}\n${hint(p)}`)}">
       <div class="avatar${logo ? ' logo' : ''}">${logo || initial}</div>
       <div class="main">
@@ -129,7 +133,7 @@
         ${opts.attention ? `<div class="where">${esc(opts.attention)}</div>` : ''}
         ${body}
       </div>
-      <div class="side"><span class="actions">${btn('review', 'diff', 'Review changes')}</span>${opts.attention ? '' : expander(open)}</div>
+      <div class="side"><span class="actions">${p.hostId ? btn('rename', 'edit', 'Rename in Herdr') + btn('closeInHerdr', 'close', 'Close in Herdr') : btn('review', 'diff', 'Review changes')}</span>${opts.attention ? '' : expander(open)}</div>
     </div>`;
   }
 
@@ -148,35 +152,36 @@
     const st = shellState(sh);
     const pill = { live: 'live output', running: 'running', prompt: 'at prompt', failed: 'error', unknown: '…' }[st];
     const changed = sh.changedAt && (st === 'live' || st === 'running') ? ` ${since(sh.changedAt)}` : '';
-    const open = !!ui.expanded[p.id];
+    const open = !!ui.expanded[uiKey(p.hostId, p.id)];
     const cmdLine = (/** @type {string} */ sigil, /** @type {string} */ text, cls = '') =>
       `<div class="cmd ${cls}"><span class="sigil">${sigil}</span><span class="text">${esc(text)}</span></div>`;
     // One line of context: what runs now, else the last command, else what's typed.
     const main = sh.command ? cmdLine(sh.state === 'running' ? '▶' : '$', sh.command) : sh.typed ? cmdLine('›', sh.typed, 'typed') : '';
     const body = open ? `${main}${sh.command && sh.typed ? cmdLine('›', sh.typed, 'typed') : ''}${lines(sh.output)}${extras(p)}` : main;
     return `<div class="row shell sh-${st}${p.focused ? ' herdr-focused' : ''}${open ? ' open' : ''}" tabindex="0" data-nav data-act="attach"
-        data-space="${esc(p.spaceId)}" data-pane="${esc(p.id)}" data-key="pane:${esc(p.id)}"
-        data-vscode-context="${ctx({ webviewSection: 'shell', spaceId: p.spaceId, paneId: p.id })}"
+        data-host="${esc(p.hostId || '')}" data-space="${esc(p.spaceId)}" data-pane="${esc(p.id)}" data-key="pane:${esc(uiKey(p.hostId, p.id))}"
+        data-vscode-context="${ctx({ webviewSection: p.hostId ? 'remote-shell' : 'shell', hostId: p.hostId, spaceId: p.spaceId, paneId: p.id })}"
         title="${esc(`${p.name} · ${p.id}\n${hint(p)}`)}">
       <div class="avatar">${icon('terminal')}</div>
       <div class="main">
         <div class="line1"><span class="name">${esc(p.name)}</span><span class="state">${pill}${changed}</span></div>
         ${body}
       </div>
-      <div class="side">${expander(open)}</div>
+      <div class="side"><span class="actions">${p.hostId ? btn('rename', 'edit', 'Rename in Herdr') + btn('closeInHerdr', 'close', 'Close in Herdr') : ''}</span>${expander(open)}</div>
     </div>`;
   }
 
   function shellGroup(/** @type {any} */ sp) {
     if (!sp.shells.length) return '';
-    const open = ui.shellsOpen[sp.id] ?? sp.shells.length <= 3;
+    const key = uiKey(sp.hostId, sp.id);
+    const open = ui.shellsOpen[key] ?? sp.shells.length <= 3;
     const states = sp.shells.map((/** @type {any} */ p) => shellState(p.shell));
     const n = (/** @type {string} */ s) => states.filter((/** @type {string} */ x) => x === s).length;
     const sum = [
       n('live') + n('running') ? `<span class="sh-running">${n('live') + n('running')} running</span>` : '',
       n('failed') ? `<span class="sh-failed">${n('failed')} error${n('failed') > 1 ? 's' : ''}</span>` : '',
     ].join('');
-    return `<div class="group${open ? '' : ' closed'}" tabindex="0" data-nav data-act="toggleShells" data-space="${esc(sp.id)}" data-key="shells:${esc(sp.id)}"
+    return `<div class="group${open ? '' : ' closed'}" tabindex="0" data-nav data-act="toggleShells" data-host="${esc(sp.hostId || '')}" data-space="${esc(sp.id)}" data-key="shells:${esc(key)}"
         aria-expanded="${open}">
         <span class="chev">${icon('chevron-down')}</span>Shells · ${sp.shells.length}<span class="sum">${sum}</span>
       </div>
@@ -212,23 +217,24 @@
 
   function spaceCard(/** @type {any} */ sp) {
     const attention = sp.counts.blocked + sp.counts.done > 0;
-    const open = ui.open[sp.id] ?? (sp.mounted || sp.focused || attention);
+    const key = uiKey(sp.hostId, sp.id);
+    const open = ui.open[key] ?? (sp.mounted || sp.focused || attention);
     const st = esc(sp.status || 'none');
-    const meta = gitLine(sp) + sp.tokens.map((/** @type {string} */ t) => `<span class="m">${esc(t)}</span>`).join('');
+    const meta = (sp.hostId ? (sp.path ? `<span class="m">${icon('folder')}${esc(sp.path)}</span>` : '') : gitLine(sp)) + sp.tokens.map((/** @type {string} */ t) => `<span class="m">${esc(t)}</span>`).join('');
     const dots = sp.agents.map((/** @type {any} */ a) => `<span class="dot st-${esc(a.status)}" title="${esc(a.name)}: ${esc(a.status)}"></span>`).join('');
     const body = sp.agents.length || sp.shells.length
       ? sp.agents.map((/** @type {any} */ a) => agentRow(a)).join('') + shellGroup(sp)
       : `<div class="empty-note">No agents${state.showShells ? ' or shells' : ''} in this space</div>`;
-    const add = `<button class="add-row" data-act="newTab" data-nav data-key="new:${esc(sp.id)}" title="New tab in ${esc(sp.label)}: a shell or an agent">${icon('add')}New tab</button>`;
-    return `<section class="space st-${st}${open ? ' open' : ''}${sp.focused ? ' herdr-focused' : ''}" data-space="${esc(sp.id)}">
-      <div class="space-head" tabindex="0" data-nav data-act="switch" data-space="${esc(sp.id)}" data-key="space:${esc(sp.id)}"
-          data-vscode-context="${ctx({ webviewSection: sp.mounted ? 'space-mounted' : 'space', spaceId: sp.id })}"
+    const add = `<button class="add-row" data-act="newTab" data-nav data-key="new:${esc(key)}" title="New tab in ${esc(sp.label)}: a shell or an agent">${icon('add')}New tab</button>`;
+    return `<section class="space st-${st}${open ? ' open' : ''}${sp.focused ? ' herdr-focused' : ''}" data-host="${esc(sp.hostId || '')}" data-space="${esc(sp.id)}">
+      <div class="space-head" tabindex="0" data-nav data-act="switch" data-space="${esc(sp.id)}" data-key="space:${esc(key)}"
+          data-vscode-context="${ctx({ webviewSection: sp.hostId ? 'remote-space' : sp.mounted ? 'space-mounted' : 'space', hostId: sp.hostId, spaceId: sp.id })}"
           aria-expanded="${open}" title="${esc(`${sp.label}${sp.path ? `\n${sp.path}` : ''}\nClick to switch to this space`)}">
         <span class="chev" data-act="toggleSpace" title="${open ? 'Collapse' : 'Expand'}">${icon('chevron-down')}</span>
         <span class="space-name">${esc(sp.label)}</span>
         <span class="dots">${dots}</span>
       </div>
-      <div class="space-meta">${meta}</div>
+      <div class="space-meta">${meta}${sp.hostId && sp.path ? `<button class="m changes" data-act="openRemoteWorkspace" title="Open this folder with Remote-SSH">${icon('remote')}Open folder</button>` : ''}${sp.hostId ? `<button class="m changes" data-act="rename" title="Rename space">${icon('edit')}</button><button class="m changes" data-act="closeInHerdr" title="Close space in Herdr">${icon('close')}</button>` : ''}</div>
       <div class="space-body">${body}${add}</div>
     </section>`;
   }
@@ -384,11 +390,13 @@
     if (!state) return;
     liveUntil = Infinity;
     const focusKey = /** @type {HTMLElement|null} */ (document.activeElement)?.closest?.('[data-key]')?.getAttribute('data-key');
-    if (!state.connected) {
-      app.innerHTML = disconnected();
+    if (!state.connected && !state.remotes?.length) {
+      app.innerHTML = `${disconnected()}<div class="section-label"><button class="link-btn" data-act="addRemoteHost">${icon('add')}Add SSH host…</button></div>`;
       return;
     }
-    const where = (/** @type {any} */ a) => state.spaces.find((/** @type {any} */ s) => s.id === a.spaceId)?.label;
+    const where = (/** @type {any} */ a) => a.hostId
+      ? `${state.remotes.find((/** @type {any} */ r) => r.host === a.hostId)?.label || a.hostId} · ${state.remotes.flatMap((/** @type {any} */ r) => r.spaces).find((/** @type {any} */ s) => s.hostId === a.hostId && s.id === a.spaceId)?.label || ''}`
+      : state.spaces.find((/** @type {any} */ s) => s.id === a.spaceId)?.label;
     const attention = state.attention.length
       ? `<div class="section-label">Needs you <span class="count">${state.attention.length}</span></div>
          <div class="attention">${state.attention.map((/** @type {any} */ a) => agentRow(a, { attention: where(a) })).join('')}</div>`
@@ -396,9 +404,13 @@
     const spaces = state.spaces.length
       ? state.spaces.map(spaceCard).join('')
       : `<div class="splash"><div class="big">${icon('layers')}</div><h2>No spaces yet</h2><p>A space is a folder with its agents and shells.</p><div class="btns"><button class="btn" data-act="newSpace">New space</button></div></div>`;
-    const spacesLabel = `<div class="section-label">Spaces<button class="icon-btn label-btn" data-act="newSpace" title="New space: a folder or a new git worktree" aria-label="New space">${icon('add')}</button></div>`;
+    const spacesLabel = `<div class="section-label">Local · Spaces<button class="icon-btn label-btn" data-act="newSpace" title="New local space" aria-label="New local space">${icon('add')}</button></div>`;
+    const remotes = (state.remotes || []).map((/** @type {any} */ remote) =>
+      `<div class="section-label">${icon('remote')}${esc(remote.label)} <span class="count">${remote.spaces.length}</span><button class="icon-btn label-btn" data-act="newRemoteSpace" data-host="${esc(remote.host)}" title="New space on ${esc(remote.label)}" aria-label="New remote space">${icon('add')}</button><button class="icon-btn" data-act="removeRemoteHost" data-host="${esc(remote.host)}" title="Remove ${esc(remote.label)} from Cockpit" aria-label="Remove SSH host">${icon('close')}</button></div>` +
+      (remote.error ? `<div class="remote-error">${icon('warning')}${esc(remote.error)}</div>` : remote.connecting && !remote.spaces.length ? `<div class="remote-error">${icon('sync', 'spin')}Connecting…</div>` : '') +
+      `<div class="spaces">${remote.spaces.map(spaceCard).join('')}</div>`).join('');
     const stale = state.connection && state.connection.kind === 'reconnecting';
-    app.innerHTML = `${header()}${banner()}<div class="${stale ? 'stale' : ''}">${usageSection()}${attention}${spacesLabel}<div class="spaces">${spaces}</div></div>`;
+    app.innerHTML = `${header()}${state.connected ? banner() : ''}<div class="${stale ? 'stale' : ''}">${usageSection()}${attention}${state.connected ? spacesLabel + `<div class="spaces">${spaces}</div>` : disconnected()}${remotes}<div class="section-label"><button class="link-btn" data-act="addRemoteHost">${icon('add')}Add SSH host…</button></div></div>`;
     for (const n of /** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.fill[data-pct]'))) n.style.width = `${n.dataset.pct}%`;
     // Re-rendering restarts CSS animations; offset them by wall-clock so spinners and pulses don't jump.
     const delay = `-${Date.now() % 1000}ms`;
@@ -406,7 +418,11 @@
     if (focusKey) /** @type {HTMLElement|null} */ (app.querySelector(`[data-key="${CSS.escape(focusKey)}"]`))?.focus();
   }
 
-  const persist = () => vscode.setState(ui);
+  const persist = () => {
+    interacted = true;
+    vscode.setState(ui);
+    vscode.postMessage({ type: 'uiState', state: ui });
+  };
 
   // ---------- interaction ----------
   app.addEventListener('click', (e) => {
@@ -417,10 +433,12 @@
     const act = el.dataset.act;
     const holder = /** @type {HTMLElement|null} */ (el.closest('[data-space]'));
     const spaceId = el.dataset.space || holder?.dataset.space;
+    const hostId = el.dataset.host || holder?.dataset.host;
+    const key = uiKey(hostId, spaceId || '');
     const paneId = el.dataset.pane || /** @type {HTMLElement|null} */ (el.closest('[data-pane]'))?.dataset.pane;
     if (act === 'toggleSpace' && spaceId) {
       const card = el.closest('.space');
-      ui.open[spaceId] = !card?.classList.contains('open');
+      ui.open[key] = !card?.classList.contains('open');
       persist();
       return render();
     }
@@ -430,23 +448,24 @@
       return render();
     }
     if (act === 'toggleRow' && paneId) {
-      ui.expanded[paneId] = !ui.expanded[paneId];
+      ui.expanded[uiKey(hostId, paneId)] = !ui.expanded[uiKey(hostId, paneId)];
       persist();
       return render();
     }
     if (act === 'toggleShells' && spaceId) {
-      ui.shellsOpen[spaceId] = el.classList.contains('closed');
+      ui.shellsOpen[key] = el.classList.contains('closed');
       persist();
       return render();
     }
     if (act === 'switch' && spaceId) {
       // Focus on the chosen space: expand it, collapse the rest, bring it into view.
-      for (const sp of state.spaces) ui.open[sp.id] = sp.id === spaceId;
+      for (const sp of [...state.spaces, ...(state.remotes || []).flatMap((/** @type {any} */ r) => r.spaces)])
+        ui.open[uiKey(sp.hostId, sp.id)] = sp.id === spaceId && (sp.hostId || '') === (hostId || '');
       persist();
       render();
-      app.querySelector(`.space[data-space="${CSS.escape(spaceId)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      app.querySelector(`.space[data-host="${CSS.escape(hostId || '')}"][data-space="${CSS.escape(spaceId)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
-    vscode.postMessage({ type: 'cmd', command: act, spaceId, paneId });
+    vscode.postMessage({ type: 'cmd', command: act, hostId, spaceId, paneId });
   });
 
   app.addEventListener('keydown', (e) => {
@@ -465,14 +484,14 @@
     } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && el.matches('.row[data-pane]')) {
       const id = el.dataset.pane;
       if (id && !el.closest('.attention')) {
-        ui.expanded[id] = e.key === 'ArrowRight';
+        ui.expanded[uiKey(el.dataset.host, id)] = e.key === 'ArrowRight';
         persist();
         render();
       }
     } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && el.matches('.space-head')) {
       const id = el.dataset.space;
       if (id) {
-        ui.open[id] = e.key === 'ArrowRight';
+        ui.open[uiKey(el.closest('.space')?.getAttribute('data-host') || undefined, id)] = e.key === 'ArrowRight';
         persist();
         render();
       }
@@ -480,7 +499,15 @@
   });
 
   window.addEventListener('message', (e) => {
-    if (e.data?.type === 'state') {
+    if (e.data?.type === 'uiState' && !hadSavedState && !interacted) {
+      const stored = e.data.state || {};
+      ui.open = stored.open || {};
+      ui.shellsOpen = stored.shellsOpen || {};
+      ui.expanded = stored.expanded || {};
+      ui.usageOpen = stored.usageOpen;
+      vscode.setState(ui);
+      render();
+    } else if (e.data?.type === 'state') {
       state = e.data.state;
       render();
     }

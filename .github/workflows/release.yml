@@ -41,15 +41,18 @@ jobs:
           npx vsce package --out "herdr-cockpit-${RELEASE_TAG#v}.vsix"
           # A stable name too: the Herdr plugin installs releases/latest/download/herdr-cockpit.vsix.
           cp "herdr-cockpit-${RELEASE_TAG#v}.vsix" herdr-cockpit.vsix
+          cp docs/manual.html herdr-cockpit-manual-ko.html
       - uses: actions/upload-artifact@v6
         with:
           name: vsix
-          path: '*.vsix'
+          path: |
+            *.vsix
+            herdr-cockpit-manual-ko.html
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          files=(herdr-cockpit.vsix "herdr-cockpit-${RELEASE_TAG#v}.vsix")
+          files=(herdr-cockpit.vsix "herdr-cockpit-${RELEASE_TAG#v}.vsix" herdr-cockpit-manual-ko.html)
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "${files[@]}" --clobber
           else

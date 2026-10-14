@@ -61,13 +61,18 @@ function lineReader(onMsg: (msg: any) => void) {
 }
 
 export class HerdrClient {
-  constructor(private socketPath: () => string) {}
+  constructor(private socketPath: () => string | net.NetConnectOpts) {}
+
+  private connect(): net.Socket {
+    const target = this.socketPath();
+    return typeof target === 'string' ? net.createConnection(transportPath(target)) : net.createConnection(target);
+  }
 
   /** One request on a short-lived connection. */
   request<T = any>(method: string, params: object = {}, timeoutMs = 5000): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const id = nextId('req');
-      const sock = net.createConnection(transportPath(this.socketPath()));
+      const sock = this.connect();
       sock.setEncoding('utf8');
       let settled = false;
       const finish = (err?: Error, val?: any) => {
@@ -99,7 +104,7 @@ export class HerdrClient {
    */
   subscribe(subscriptions: readonly EventSubscription[], onEvent: (ev: any) => void, onEnd: (err?: Error) => void): Subscription {
     const id = nextId('sub');
-    const sock = net.createConnection(transportPath(this.socketPath()));
+    const sock = this.connect();
     sock.setEncoding('utf8');
     let ended = false;
     let acked = false;

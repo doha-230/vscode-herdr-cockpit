@@ -31,3 +31,15 @@ jobs:
           npm test
       - name: Package
         run: npx vsce package --out herdr-cockpit.vsix
+  windows-transport:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run compile
+      - run: node out/test/transportTest.js
+      - run: node out/test/remoteTest.js

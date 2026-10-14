@@ -3,6 +3,17 @@
 Herdr Cockpit (the editor extension) and its Herdr plugin (`plugin/`) are released together from this repository.
 Versions up to 0.1.2 were published as **Herdr Hub** (`sriharirao.herdr-hub`).
 
+## 0.3.0 (2026-10-15)
+
+- Show local Herdr and configured SSH hosts together in the sidebar, including remote agent status and attention counts.
+- Use OpenSSH forwarding to reach each remote Herdr Unix socket; add hosts from the sidebar or `herdr.remoteHosts`.
+- Focus remote spaces, attach their panes through SSH terminals, create tabs and spaces, start agents, and rename or close remote items.
+- Open a remote space's folder in a VS Code Remote-SSH window for Explorer and Git.
+- Add an SSH tunnel and request regression test.
+- Persist sidebar expansion state per workspace across VS Code restarts.
+- Add a Windows CI transport job for named pipes and the simulated SSH tunnel.
+- Add a standalone Korean HTML manual with SSH key setup, Windows-to-Linux VM instructions, and troubleshooting.
+
 ## 0.2.2 (2026-10-10)
 
 - Windows: connect API requests and event subscriptions through Herdr's named pipe instead of opening the socket marker file (fixes `ENOTSOCK`).
