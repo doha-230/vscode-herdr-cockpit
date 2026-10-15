@@ -391,7 +391,7 @@
     liveUntil = Infinity;
     const focusKey = /** @type {HTMLElement|null} */ (document.activeElement)?.closest?.('[data-key]')?.getAttribute('data-key');
     if (!state.connected && !state.remotes?.length) {
-      app.innerHTML = `${disconnected()}<div class="section-label"><button class="link-btn" data-act="addRemoteHost">${icon('add')}Add SSH host…</button></div>`;
+      app.innerHTML = `${disconnected()}<div class="section-label"><button class="link-btn" data-act="addRemoteHost">${icon('add')}SSH host settings…</button></div>`;
       return;
     }
     const where = (/** @type {any} */ a) => a.hostId
@@ -406,11 +406,11 @@
       : `<div class="splash"><div class="big">${icon('layers')}</div><h2>No spaces yet</h2><p>A space is a folder with its agents and shells.</p><div class="btns"><button class="btn" data-act="newSpace">New space</button></div></div>`;
     const spacesLabel = `<div class="section-label">Local · Spaces<button class="icon-btn label-btn" data-act="newSpace" title="New local space" aria-label="New local space">${icon('add')}</button></div>`;
     const remotes = (state.remotes || []).map((/** @type {any} */ remote) =>
-      `<div class="section-label">${icon('remote')}${esc(remote.label)} <span class="count">${remote.spaces.length}</span><button class="icon-btn label-btn" data-act="newRemoteSpace" data-host="${esc(remote.host)}" title="New space on ${esc(remote.label)}" aria-label="New remote space">${icon('add')}</button><button class="icon-btn" data-act="removeRemoteHost" data-host="${esc(remote.host)}" title="Remove ${esc(remote.label)} from Cockpit" aria-label="Remove SSH host">${icon('close')}</button></div>` +
-      (remote.error ? `<div class="remote-error">${icon('warning')}${esc(remote.error)}</div>` : remote.connecting && !remote.spaces.length ? `<div class="remote-error">${icon('sync', 'spin')}Connecting…</div>` : '') +
+      `<div class="section-label">${icon('remote')}${esc(remote.label)} <span class="count">${remote.spaces.length}</span><button class="icon-btn label-btn" data-act="newRemoteSpace" data-host="${esc(remote.host)}" title="New space on ${esc(remote.label)}" aria-label="New remote space">${icon('add')}</button><button class="icon-btn" data-act="refreshRemoteHost" data-host="${esc(remote.host)}" title="Retry ${esc(remote.label)}" aria-label="Retry SSH host">${icon('refresh')}</button><button class="icon-btn" data-act="configureRemoteHost" data-host="${esc(remote.host)}" title="Configure ${esc(remote.label)}" aria-label="Configure SSH host">${icon('settings-gear')}</button><button class="icon-btn" data-act="removeRemoteHost" data-host="${esc(remote.host)}" title="Remove ${esc(remote.label)} from Cockpit" aria-label="Remove SSH host">${icon('close')}</button></div>` +
+      (remote.error ? `<div class="remote-error">${icon('warning')}<span>${esc(remote.error)}</span><button class="link-btn" data-act="configureRemoteHost" data-host="${esc(remote.host)}">Edit</button></div>` : remote.connecting ? `<div class="remote-error">${icon('sync', 'spin')}Connecting to ${esc(remote.host)}…</div>` : `<div class="remote-ok">${icon('pass-filled')}Connected to ${esc(remote.host)}</div>`) +
       `<div class="spaces">${remote.spaces.map(spaceCard).join('')}</div>`).join('');
     const stale = state.connection && state.connection.kind === 'reconnecting';
-    app.innerHTML = `${header()}${state.connected ? banner() : ''}<div class="${stale ? 'stale' : ''}">${usageSection()}${attention}${state.connected ? spacesLabel + `<div class="spaces">${spaces}</div>` : disconnected()}${remotes}<div class="section-label"><button class="link-btn" data-act="addRemoteHost">${icon('add')}Add SSH host…</button></div></div>`;
+    app.innerHTML = `${header()}${state.connected ? banner() : ''}<div class="${stale ? 'stale' : ''}">${usageSection()}${attention}${state.connected ? spacesLabel + `<div class="spaces">${spaces}</div>` : disconnected()}${remotes}<div class="section-label"><button class="link-btn" data-act="addRemoteHost">${icon('add')}SSH host settings…</button></div></div>`;
     for (const n of /** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.fill[data-pct]'))) n.style.width = `${n.dataset.pct}%`;
     // Re-rendering restarts CSS animations; offset them by wall-clock so spinners and pulses don't jump.
     const delay = `-${Date.now() % 1000}ms`;

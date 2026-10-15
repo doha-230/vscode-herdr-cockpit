@@ -19,7 +19,8 @@ import { reviewChanges } from './review';
 import { showHelp } from './help';
 import { agentSlug, HerdrActions } from './herdrActions';
 import { closeInHerdr, ManageDeps, newSpace, newTab, pickWhat, rename, startAgent } from './manage';
-import { RemoteHost, RemoteHostConfig, remoteEnvPrefix, remoteQuote, validHost } from './remote';
+import { RemoteHost, RemoteHostConfig, remoteEnvPrefix, remoteQuote, sshConnectionArgs, validHost } from './remote';
+import { RemoteSettingsPanel } from './remoteSettings';
 import { registerProfiles, SHELL_PROFILE_TITLE } from './profiles';
 import { codexBinary, codexLiveUsage, ProviderUsage, readUsage } from './usage';
 import { setUpClaudeUsage } from './usageSetup';
@@ -81,6 +82,8 @@ const PANEL_COMMANDS: Record<string, string> = {
   openInstallDocs: 'herdr.openInstallDocs',
   openRemoteWorkspace: 'herdr.openRemoteWorkspace',
   addRemoteHost: 'herdr.addRemoteHost',
+  configureRemoteHost: 'herdr.configureRemoteHost',
+  refreshRemoteHost: 'herdr.refreshRemoteHost',
   newRemoteSpace: 'herdr.newRemoteSpace',
   removeRemoteHost: 'herdr.removeRemoteHost',
 };
@@ -821,7 +824,7 @@ export function activate(ctx: vscode.ExtensionContext) {
     const terminal = vscode.window.createTerminal({
       name: `${host.config.label || host.config.host}: ${paneName(space.tabs.find((t) => t.id === pane.tabId), pane)}`,
       shellPath: 'ssh',
-      shellArgs: ['-tt', '-o', 'BatchMode=yes', host.config.host, command],
+      shellArgs: [...sshConnectionArgs(host.config), '-tt', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', host.config.host, command],
       iconPath: agentIcon(pane.agentKind) ?? new vscode.ThemeIcon('remote'),
       location: { viewColumn: vscode.ViewColumn.Active },
     });
@@ -858,6 +861,46 @@ export function activate(ctx: vscode.ExtensionContext) {
     };
   }
 
+  const remoteConfigs = () => cfg().get<RemoteHostConfig[]>('remoteHosts', []);
+  async function saveRemoteConfig(config: RemoteHostConfig, originalHost?: string): Promise<{ connected: boolean; detail: string }> {
+    const existing = remoteConfigs();
+    if (existing.some((item) => item.host === config.host && item.host !== originalHost))
+      throw new Error(`${config.host} is already saved. Select it in the list to edit.`);
+    const next = originalHost && existing.some((item) => item.host === originalHost)
+      ? existing.map((item) => item.host === originalHost ? config : item)
+      : [...existing, config];
+    await cfg().update('remoteHosts', next, vscode.ConfigurationTarget.Global);
+    syncRemoteHosts();
+    const host = remoteHosts.get(config.host);
+    await host?.refresh();
+    return host?.model
+      ? { connected: true, detail: `Saved ${config.label || config.host}. Connected to Herdr; ${host.model.spaces.length} space(s) found.` }
+      : { connected: false, detail: `Saved ${config.label || config.host}, but connection failed: ${host?.error || 'No response from the SSH host.'}` };
+  }
+  async function removeRemoteConfig(hostId: string): Promise<boolean> {
+    const config = remoteConfigs().find((item) => item.host === hostId);
+    if (!config) return false;
+    const pick = await vscode.window.showWarningMessage(`Remove ${config.label || config.host} from Herdr Cockpit?`,
+      { modal: true, detail: 'Herdr and its agents keep running on the SSH host.' }, 'Remove Host');
+    if (pick !== 'Remove Host') return false;
+    await cfg().update('remoteHosts', remoteConfigs().filter((item) => item.host !== hostId), vscode.ConfigurationTarget.Global);
+    syncRemoteHosts();
+    return true;
+  }
+  const remoteSettings = new RemoteSettingsPanel(ctx.extensionUri, {
+    hosts: remoteConfigs,
+    save: saveRemoteConfig,
+    remove: removeRemoteConfig,
+    test: async (config) => {
+      const probe = new RemoteHost(config, () => {});
+      try {
+        await probe.refresh();
+        if (!probe.model) throw new Error(probe.error || 'No response from the SSH host.');
+        return `Connected to Herdr on ${config.host}. ${probe.model.spaces.length} space(s) found.`;
+      } finally { probe.dispose(); }
+    },
+  });
+
   function syncRemoteHosts() {
     const configs = cfg().get<RemoteHostConfig[]>('remoteHosts', []);
     const desired = new Map<string, RemoteHostConfig>();
@@ -871,6 +914,7 @@ export function activate(ctx: vscode.ExtensionContext) {
     for (const [id, config] of desired)
       if (!remoteHosts.has(id)) remoteHosts.set(id, new RemoteHost(config, scheduleRender));
     scheduleRender();
+    remoteSettings.update();
     void Promise.allSettled([...remoteHosts.values()].map((h) => h.refresh()));
   }
   syncRemoteHosts();
@@ -898,6 +942,7 @@ export function activate(ctx: vscode.ExtensionContext) {
     }),
     log,
     panel,
+    remoteSettings,
     vscode.window.registerWebviewViewProvider(HerdrPanel.viewId, panel),
     panel.onDidChangeVisibility((visible) => {
       if (!visible) return;
@@ -1056,25 +1101,20 @@ export function activate(ctx: vscode.ExtensionContext) {
     vscode.commands.registerCommand('herdr.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${ctx.extension.id}`),
     ),
-    vscode.commands.registerCommand('herdr.addRemoteHost', async () => {
-      const host = await vscode.window.showInputBox({
-        title: 'Add SSH host', prompt: 'SSH config host alias (Herdr must be running there)',
-        placeHolder: 'my-server',
-        validateInput: (value) => validHost(value.trim()) ? undefined : 'Use an SSH host alias with letters, digits, dots, _ or -',
+    vscode.commands.registerCommand('herdr.addRemoteHost', () => remoteSettings.show()),
+    vscode.commands.registerCommand('herdr.configureRemoteHost', (t?: Target) => remoteSettings.show(t?.hostId)),
+    vscode.commands.registerCommand('herdr.refreshRemoteHost', async (t?: Target) => {
+      const host = await chooseRemoteHost(t);
+      if (!host) return;
+      await host.refresh();
+      if (host.error) vscode.window.showWarningMessage(`${host.config.label || host.config.host}: ${host.error}`, 'Edit SSH Host').then((pick) => {
+        if (pick) remoteSettings.show(host.config.host);
       });
-      if (!host?.trim()) return;
-      const id = host.trim();
-      const existing = cfg().get<RemoteHostConfig[]>('remoteHosts', []);
-      if (existing.some((item) => item.host === id)) return void vscode.window.showInformationMessage(`${id} is already in Herdr remote hosts.`);
-      await cfg().update('remoteHosts', [...existing, { host: id }], vscode.ConfigurationTarget.Global);
     }),
     vscode.commands.registerCommand('herdr.removeRemoteHost', async (t?: Target) => {
       const host = await chooseRemoteHost(t);
       if (!host) return;
-      const pick = await vscode.window.showWarningMessage(`Remove ${host.config.label || host.config.host} from Herdr Cockpit?`,
-        { modal: true, detail: 'Herdr and its agents keep running on the SSH host.' }, 'Remove Host');
-      if (pick !== 'Remove Host') return;
-      await cfg().update('remoteHosts', cfg().get<RemoteHostConfig[]>('remoteHosts', []).filter((c) => c.host !== host.config.host), vscode.ConfigurationTarget.Global);
+      await removeRemoteConfig(host.config.host);
     }),
     vscode.commands.registerCommand('herdr.openRemoteWorkspace', async (t?: Target) => {
       const host = await chooseRemoteHost(t);

@@ -2,7 +2,7 @@
   "name": "herdr-cockpit",
   "displayName": "Herdr Cockpit",
   "description": "Your Herdr agents and spaces in one VS Code window: files, git, diffs and all your extensions next to the agents, with Claude Code, Codex and Kiro usage in one place. No extra Herdr plugins or windows.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "sriharirao",
   "icon": "media/icon.png",
   "galleryBanner": {
@@ -199,7 +199,17 @@
       },
       {
         "command": "herdr.addRemoteHost",
-        "title": "Add SSH Host…",
+        "title": "SSH Host Settings…",
+        "category": "Herdr Cockpit"
+      },
+      {
+        "command": "herdr.configureRemoteHost",
+        "title": "Configure SSH Host…",
+        "category": "Herdr Cockpit"
+      },
+      {
+        "command": "herdr.refreshRemoteHost",
+        "title": "Retry SSH Host",
         "category": "Herdr Cockpit"
       },
       {
@@ -372,13 +382,16 @@
           "type": "array",
           "default": [],
           "scope": "machine",
-          "description": "SSH config hosts whose Herdr spaces appear alongside this machine's spaces. Requires SSH key authentication and a running Herdr server on each host.",
+          "description": "SSH hosts whose Herdr spaces appear alongside this machine's spaces. Use Herdr Cockpit: SSH Host Settings to edit and test them. Requires non-interactive SSH key authentication and a running Herdr server on each host.",
           "items": {
             "type": "object",
             "required": ["host"],
             "properties": {
-              "host": { "type": "string", "description": "SSH config host alias (letters, digits, dots, _ or -)." },
+              "host": { "type": "string", "description": "SSH config alias, hostname, or IPv4 address." },
               "label": { "type": "string", "description": "Sidebar label." },
+              "user": { "type": "string", "description": "SSH username; empty uses the SSH config or local account." },
+              "port": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "SSH port; empty uses the SSH config or 22." },
+              "identityFile": { "type": "string", "description": "Local private key file path; key contents are never stored in settings." },
               "binaryPath": { "type": "string", "description": "Herdr executable on this host; defaults to herdr on PATH." },
               "socketPath": { "type": "string", "description": "Absolute Unix socket path on this host; defaults to the path reported by Herdr status." }
             }

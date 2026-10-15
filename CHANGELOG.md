@@ -3,6 +3,12 @@
 Herdr Cockpit (the editor extension) and its Herdr plugin (`plugin/`) are released together from this repository.
 Versions up to 0.1.2 were published as **Herdr Hub** (`sriharirao.herdr-hub`).
 
+## 0.3.1 (2026-10-15)
+
+- Add an SSH host settings window for address or alias, user, port, private key path, display name, and remote Herdr paths.
+- Test SSH and Herdr before saving, report the connection result immediately after saving, and show per-host errors, retry and edit controls in the sidebar.
+- Apply saved SSH user, port and key settings to status checks, tunnels and attached terminals; include SSH tunnel stderr in failures.
+
 ## 0.3.0 (2026-10-15)
 
 - Show local Herdr and configured SSH hosts together in the sidebar, including remote agent status and attention counts.

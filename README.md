@@ -4,7 +4,7 @@ English first · [한국어 안내](#한국어)
 
 Manage Herdr spaces, agents and terminals in VS Code, including local and configured SSH hosts in one sidebar. This fork of [the original Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit) also fixes **Windows connections that failed even while the Herdr server was running**.
 
-[**Download v0.3.0 VSIX**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-0.3.0.vsix) · [한국어 HTML 매뉴얼](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-manual-ko.html) · [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases).
+[**Download v0.3.1 VSIX**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-0.3.1.vsix) · [한국어 HTML 매뉴얼](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-manual-ko.html) · [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases).
 
 ## What we fixed
 
@@ -146,18 +146,18 @@ See [plugin/README.md](plugin/README.md).
 
 ### Local and SSH hosts in one sidebar
 
-Run **Herdr Cockpit: Add SSH Host…** or use **Add SSH host…** at the bottom of the sidebar. Remove a host with its **×** button or **Herdr Cockpit: Remove SSH Host…**. Enter an alias from your `~/.ssh/config`. SSH key authentication must work without a prompt (`ssh -o BatchMode=yes my-server`), and Herdr must already be running on the remote Linux/macOS host. OpenSSH, including your configured port, identity and jump host, is used for a local TCP tunnel to the remote Unix socket. The remote Herdr socket is never exposed on a public network interface.
+Run **Herdr Cockpit: SSH Host Settings…** or use **SSH host settings…** at the bottom of the sidebar. Enter an SSH hostname or config alias, plus optional user, port, private key path, display name and remote Herdr paths. **Test SSH + Herdr** reports the connection result before saving; **Save and connect** stores the settings on this machine and shows the result. Each host in the sidebar has retry and edit buttons. SSH key authentication must work without a prompt; passphrase-protected keys need `ssh-agent`. Herdr must already be running on the remote Linux/macOS host. OpenSSH also uses port, identity and jump host values from your SSH config when the corresponding form fields are empty. The remote Herdr socket is never exposed on a public network interface.
 
 For more control, set the machine setting directly:
 
 ```json
 "herdr.remoteHosts": [
-  { "host": "my-server", "label": "Build server" },
+  { "host": "192.168.56.10", "user": "ubuntu", "port": 22, "identityFile": "C:/Users/me/.ssh/id_ed25519", "label": "Build VM" },
   { "host": "lab", "binaryPath": "/home/me/.local/bin/herdr", "socketPath": "/home/me/.config/herdr/herdr.sock" }
 ]
 ```
 
-The sidebar groups spaces by machine and includes remote agents in the totals and **Needs you** list. Click a remote space to focus it in Herdr and open its panes as SSH terminal tabs. You can create tabs and spaces, start agents, rename and close remote items in the same sidebar. **Open folder** uses the VS Code Remote-SSH extension to open the remote path in another window for Explorer, Git and diffs. Remote usage and Git data are shown in that Remote-SSH window, not in the aggregated local sidebar. SSH hosts require Unix sockets; Windows remote hosts are not supported by this tunnel.
+The sidebar groups spaces by machine and includes remote agents in the totals and **Needs you** list. Click a remote space to focus it in Herdr and open its panes as SSH terminal tabs. You can create tabs and spaces, start agents, rename and close remote items in the same sidebar. **Open folder** uses the VS Code Remote-SSH extension to open the remote path in another window for Explorer, Git and diffs. If you set user, port or key only in the Cockpit form, add the same values to an SSH config alias for Remote-SSH's **Open folder** action. Remote usage and Git data are shown in that Remote-SSH window, not in the aggregated local sidebar. SSH hosts require Unix sockets; Windows remote hosts are not supported by this tunnel.
 
 Expanded spaces, shell groups, agent details and the Usage section are saved per workspace and restored when the same workspace is reopened. The SSH tunnel test runs on Linux with a simulated SSH server; a live Windows SSH client to Linux/macOS host has not yet been validated.
 
@@ -191,22 +191,22 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` needs no editor.
 
 Herdr의 작업 공간과 에이전트, 터미널을 VS Code에서 사용하는 확장 프로그램입니다. 이 저장소는 [원본 Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit)을 기반으로, **Windows에서 서버가 실행 중인데도 확장이 연결되지 않던 문제**를 수정한 포크입니다.
 
-[**v0.3.0 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-0.3.0.vsix) · [HTML 사용 설명서](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.0/herdr-cockpit-manual-ko.html) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases).
+[**v0.3.1 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-0.3.1.vsix) · [HTML 사용 설명서](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-manual-ko.html) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases).
 
 ### 로컬과 SSH 서버를 한 화면에서 관리
 
-명령 팔레트에서 **Herdr Cockpit: Add SSH Host…**를 실행하고 `~/.ssh/config`의 호스트 별칭을 입력합니다. 원격 Linux/macOS 서버에서 Herdr가 실행 중이어야 하며, `ssh -o BatchMode=yes 호스트별칭`이 암호 입력 없이 연결되어야 합니다. 사이드바에 로컬과 각 원격 서버의 공간·에이전트 상태가 함께 표시됩니다. 원격 공간과 탭 열기, 에이전트 시작, 이름 변경, 종료, 새 공간 만들기를 사이드바에서 조작할 수 있습니다. **Open folder**는 파일 탐색·Git·diff를 위해 별도의 VS Code Remote-SSH 창을 엽니다.
+명령 팔레트의 **Herdr Cockpit: SSH Host Settings…** 또는 사이드바 아래 **SSH host settings…**를 눌러 설정 창을 엽니다. 서버 주소 또는 SSH 별칭, 사용자, 포트, 개인키 파일 경로, 표시 이름, 원격 Herdr 경로를 저장할 수 있습니다. **Test SSH + Herdr**로 연결 결과를 먼저 확인하고 **Save and connect**로 저장·접속하세요. 원격 Linux/macOS 서버에서 Herdr가 실행 중이어야 하며 SSH 키가 암호 입력 없이 사용 가능해야 합니다. 사이드바에 로컬과 각 원격 서버의 공간·에이전트 상태가 함께 표시되고, 실패 시 SSH 오류와 재시도·설정 버튼이 나타납니다. **Open folder**는 파일 탐색·Git·diff를 위해 별도의 VS Code Remote-SSH 창을 엽니다.
 
-설정에서 별칭과 원격 실행 파일·소켓 경로를 직접 지정할 수도 있습니다:
+설정 창 대신 `herdr.remoteHosts` 사용자 설정을 직접 편집할 수도 있습니다:
 
 ```json
 "herdr.remoteHosts": [
-  { "host": "my-server", "label": "작업 서버" },
+  { "host": "192.168.56.10", "user": "ubuntu", "port": 22, "identityFile": "C:/Users/me/.ssh/id_ed25519", "label": "개발 VM" },
   { "host": "lab", "binaryPath": "/home/me/.local/bin/herdr" }
 ]
 ```
 
-로컬 VS Code 창에서 확장을 실행해야 데스크톱과 SSH 서버가 함께 보입니다. Remote-SSH 창에서 확장이 실행되면 그 서버가 로컬로 간주됩니다. 원격 사용량과 Git 정보는 해당 Remote-SSH 창에서 확인합니다. 원격 연결에는 Unix 소켓을 사용하므로 Windows 원격 서버는 현재 지원하지 않습니다.
+로컬 VS Code 창에서 확장을 실행해야 데스크톱과 SSH 서버가 함께 보입니다. Remote-SSH 창에서 확장이 실행되면 그 서버가 로컬로 간주됩니다. **Open folder**에 Remote-SSH를 사용하려면 설정 창의 사용자·포트·키 정보를 SSH config 별칭에도 등록하세요. 원격 사용량과 Git 정보는 해당 Remote-SSH 창에서 확인합니다. 원격 연결에는 Unix 소켓을 사용하므로 Windows 원격 서버는 현재 지원하지 않습니다.
 
 공간·셸 그룹·에이전트 상세 정보·사용량 영역의 접기 상태는 작업 공간별로 저장되어 같은 작업 공간을 다시 열면 복원됩니다. SSH 터널은 Linux에서 모의 SSH 서버로 테스트했으며, Windows SSH 클라이언트에서 실제 원격 서버까지 연결하는 검증은 아직 하지 않았습니다.
 
