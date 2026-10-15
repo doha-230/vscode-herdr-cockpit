@@ -4,7 +4,7 @@ English first · [한국어 안내](#한국어)
 
 Manage Herdr spaces, agents and terminals in VS Code, including local and configured SSH hosts in one sidebar. This fork of [the original Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit) also fixes **Windows connections that failed even while the Herdr server was running**.
 
-[**Download v0.3.1 VSIX**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-0.3.1.vsix) · [한국어 HTML 매뉴얼](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-manual-ko.html) · [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases).
+[**Download v0.3.2 VSIX**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.2/herdr-cockpit-0.3.2.vsix) · [한국어 HTML 매뉴얼](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.2/herdr-cockpit-manual-ko.html) · [Releases](https://github.com/doha-230/vscode-herdr-cockpit/releases).
 
 ## What we fixed
 
@@ -146,7 +146,7 @@ See [plugin/README.md](plugin/README.md).
 
 ### Local and SSH hosts in one sidebar
 
-Run **Herdr Cockpit: SSH Host Settings…** or use **SSH host settings…** at the bottom of the sidebar. Enter an SSH hostname or config alias, plus optional user, port, private key path, display name and remote Herdr paths. **Test SSH + Herdr** reports the connection result before saving; **Save and connect** stores the settings on this machine and shows the result. Each host in the sidebar has retry and edit buttons. SSH key authentication must work without a prompt; passphrase-protected keys need `ssh-agent`. Herdr must already be running on the remote Linux/macOS host. OpenSSH also uses port, identity and jump host values from your SSH config when the corresponding form fields are empty. The remote Herdr socket is never exposed on a public network interface.
+Run **Herdr Cockpit: SSH Host Settings…** or use **SSH host settings…** at the bottom of the sidebar. Enter an SSH hostname or config alias, plus optional user, port, private key path, display name and remote Herdr paths. **Test SSH + Herdr** reports the connection result before saving; **Save and connect** stores the settings on this machine and shows the result. Each host in the sidebar has retry and edit buttons. SSH key authentication must work without a prompt; passphrase-protected keys need `ssh-agent`. Herdr must already be running on the remote Linux/macOS host. The extension searches common remote Herdr install paths when a non-login SSH shell cannot find `herdr`; enter its absolute path in the settings window if needed. OpenSSH also uses port, identity and jump host values from your SSH config when the corresponding form fields are empty. The remote Herdr socket is never exposed on a public network interface.
 
 For more control, set the machine setting directly:
 
@@ -191,11 +191,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` needs no editor.
 
 Herdr의 작업 공간과 에이전트, 터미널을 VS Code에서 사용하는 확장 프로그램입니다. 이 저장소는 [원본 Herdr Cockpit](https://github.com/sriharirao92/vscode-herdr-cockpit)을 기반으로, **Windows에서 서버가 실행 중인데도 확장이 연결되지 않던 문제**를 수정한 포크입니다.
 
-[**v0.3.1 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-0.3.1.vsix) · [HTML 사용 설명서](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-manual-ko.html) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases).
+[**v0.3.2 VSIX 다운로드**](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.2/herdr-cockpit-0.3.2.vsix) · [HTML 사용 설명서](https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.2/herdr-cockpit-manual-ko.html) · [릴리즈](https://github.com/doha-230/vscode-herdr-cockpit/releases).
 
 ### 로컬과 SSH 서버를 한 화면에서 관리
 
-명령 팔레트의 **Herdr Cockpit: SSH Host Settings…** 또는 사이드바 아래 **SSH host settings…**를 눌러 설정 창을 엽니다. 서버 주소 또는 SSH 별칭, 사용자, 포트, 개인키 파일 경로, 표시 이름, 원격 Herdr 경로를 저장할 수 있습니다. **Test SSH + Herdr**로 연결 결과를 먼저 확인하고 **Save and connect**로 저장·접속하세요. 원격 Linux/macOS 서버에서 Herdr가 실행 중이어야 하며 SSH 키가 암호 입력 없이 사용 가능해야 합니다. 사이드바에 로컬과 각 원격 서버의 공간·에이전트 상태가 함께 표시되고, 실패 시 SSH 오류와 재시도·설정 버튼이 나타납니다. **Open folder**는 파일 탐색·Git·diff를 위해 별도의 VS Code Remote-SSH 창을 엽니다.
+명령 팔레트의 **Herdr Cockpit: SSH Host Settings…** 또는 사이드바 아래 **SSH host settings…**를 눌러 설정 창을 엽니다. 서버 주소 또는 SSH 별칭, 사용자, 포트, 개인키 파일 경로, 표시 이름, 원격 Herdr 경로를 저장할 수 있습니다. **Test SSH + Herdr**로 연결 결과를 먼저 확인하고 **Save and connect**로 저장·접속하세요. 원격 Linux/macOS 서버에서 Herdr가 실행 중이어야 하며 SSH 키가 암호 입력 없이 사용 가능해야 합니다. SSH 비로그인 셸의 PATH에서 `herdr`를 찾지 못하면 일반적인 설치 경로를 확인합니다. 그래도 실패하면 설정 창의 **Herdr executable on the remote host**에 원격 실행 파일의 절대 경로를 입력하세요. 사이드바에 로컬과 각 원격 서버의 공간·에이전트 상태가 함께 표시되고, 실패 시 SSH 오류와 재시도·설정 버튼이 나타납니다. **Open folder**는 파일 탐색·Git·diff를 위해 별도의 VS Code Remote-SSH 창을 엽니다.
 
 설정 창 대신 `herdr.remoteHosts` 사용자 설정을 직접 편집할 수도 있습니다:
 

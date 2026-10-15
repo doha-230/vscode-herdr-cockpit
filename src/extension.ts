@@ -19,7 +19,7 @@ import { reviewChanges } from './review';
 import { showHelp } from './help';
 import { agentSlug, HerdrActions } from './herdrActions';
 import { closeInHerdr, ManageDeps, newSpace, newTab, pickWhat, rename, startAgent } from './manage';
-import { RemoteHost, RemoteHostConfig, remoteEnvPrefix, remoteQuote, sshConnectionArgs, validHost } from './remote';
+import { RemoteHost, RemoteHostConfig, remoteHerdrCommand, sshConnectionArgs, validHost } from './remote';
 import { RemoteSettingsPanel } from './remoteSettings';
 import { registerProfiles, SHELL_PROFILE_TITLE } from './profiles';
 import { codexBinary, codexLiveUsage, ProviderUsage, readUsage } from './usage';
@@ -820,7 +820,7 @@ export function activate(ctx: vscode.ExtensionContext) {
     const key = `${host.config.host}:${pane.id}`;
     const existing = remoteTerms.get(key);
     if (existing && existing.exitStatus === undefined) return void existing.show();
-    const command = `${remoteEnvPrefix(host.socketPath)}${remoteQuote(host.config.binaryPath || 'herdr')} terminal attach ${remoteQuote(pane.terminalId)}`;
+    const command = remoteHerdrCommand(host.config, ['terminal', 'attach', pane.terminalId], host.socketPath);
     const terminal = vscode.window.createTerminal({
       name: `${host.config.label || host.config.host}: ${paneName(space.tabs.find((t) => t.id === pane.tabId), pane)}`,
       shellPath: 'ssh',

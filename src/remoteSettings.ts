@@ -100,7 +100,7 @@ export class RemoteSettingsPanel implements vscode.Disposable {
 <label>SSH user<input name="user" autocomplete="username" placeholder="ubuntu"></label>
 <label>SSH port<input name="port" type="number" min="1" max="65535" placeholder="22"></label>
 <label class="full">Private key file <span>Path only; key contents are never stored here</span><div class="key-row"><input name="identityFile" autocomplete="off" placeholder="C:\\Users\\me\\.ssh\\id_ed25519"><button id="pickKey" type="button">Browse…</button></div></label>
-<label class="full">Herdr executable on the remote host <span>Optional</span><input name="binaryPath" autocomplete="off" placeholder="/home/ubuntu/.local/bin/herdr"></label>
+<label class="full">Herdr executable on the remote host <span>Optional; set this if the test says command not found</span><input name="binaryPath" autocomplete="off" placeholder="/home/ubuntu/.local/bin/herdr"></label>
 <label class="full">Herdr Unix socket on the remote host <span>Optional</span><input name="socketPath" autocomplete="off" placeholder="/home/ubuntu/.config/herdr/herdr.sock"></label>
 </div><div class="actions"><button class="primary" type="submit">Save and connect</button><button id="testHost" type="button">Test SSH + Herdr</button><button id="removeHost" type="button">Remove host</button></div>
 <div id="result" role="status" aria-live="polite"></div>

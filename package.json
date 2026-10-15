@@ -2,7 +2,7 @@
   "name": "herdr-cockpit",
   "displayName": "Herdr Cockpit",
   "description": "Your Herdr agents and spaces in one VS Code window: files, git, diffs and all your extensions next to the agents, with Claude Code, Codex and Kiro usage in one place. No extra Herdr plugins or windows.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "publisher": "sriharirao",
   "icon": "media/icon.png",
   "galleryBanner": {
@@ -392,7 +392,7 @@
               "user": { "type": "string", "description": "SSH username; empty uses the SSH config or local account." },
               "port": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "SSH port; empty uses the SSH config or 22." },
               "identityFile": { "type": "string", "description": "Local private key file path; key contents are never stored in settings." },
-              "binaryPath": { "type": "string", "description": "Herdr executable on this host; defaults to herdr on PATH." },
+              "binaryPath": { "type": "string", "description": "Absolute Herdr executable path on this host; empty searches PATH and common Linux/macOS install directories." },
               "socketPath": { "type": "string", "description": "Absolute Unix socket path on this host; defaults to the path reported by Herdr status." }
             }
           }

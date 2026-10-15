@@ -53,6 +53,23 @@ export function remoteEnvPrefix(socket?: string): string {
   return `HERDR_SOCKET_PATH=${remoteQuote(socket)} ${session ? `HERDR_SESSION=${remoteQuote(session)} ` : ''}`;
 }
 
+/** Remote SSH commands do not usually load the user's login PATH. Try common install directories. */
+export function remoteHerdrCommand(config: RemoteHostConfig, args: string[], socket?: string): string {
+  const env = remoteEnvPrefix(socket ?? config.socketPath);
+  const commandArgs = args.map(remoteQuote).join(' ');
+  if (config.binaryPath) return `${env}${remoteQuote(config.binaryPath)} ${commandArgs}`;
+  const paths = [
+    '"$HOME/.local/bin/herdr"', '"$HOME/.cargo/bin/herdr"', '"$HOME/.nix-profile/bin/herdr"',
+    '"$HOME/.linuxbrew/bin/herdr"', '"$HOME/.local/share/mise/shims/herdr"',
+    '"/opt/homebrew/bin/herdr"', '"/usr/local/bin/herdr"', '"/usr/bin/herdr"',
+    '"/home/linuxbrew/.linuxbrew/bin/herdr"', '"/run/current-system/sw/bin/herdr"', '"/snap/bin/herdr"',
+  ];
+  const script = `if command -v herdr >/dev/null 2>&1; then exec herdr ${commandArgs}; fi; ` +
+    `for p in ${paths.join(' ')}; do if [ -x "$p" ]; then exec "$p" ${commandArgs}; fi; done; ` +
+    `echo 'herdr executable not found on SSH host; set its absolute path in SSH Host Settings' >&2; exit 127`;
+  return `${env}/bin/sh -c ${remoteQuote(script)}`;
+}
+
 export interface RemoteState {
   config: RemoteHostConfig;
   model?: Model;
@@ -72,8 +89,7 @@ function freePort(): Promise<number> {
 }
 
 function sshStatus(config: RemoteHostConfig, ssh: SshCommand): Promise<{ running: boolean; socket?: string; compatible?: boolean; protocol?: number }> {
-  const bin = config.binaryPath || 'herdr';
-  const command = `${remoteEnvPrefix(config.socketPath)}${remoteQuote(bin)} status server --json`;
+  const command = remoteHerdrCommand(config, ['status', 'server', '--json']);
   return new Promise((resolve, reject) => {
     execFile(ssh.file, [...ssh.args, ...sshConnectionArgs(config), '-T', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', config.host, command],
       { timeout: 10000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101722">
-  <title>Herdr Cockpit 0.3.1 사용 설명서</title>
+  <title>Herdr Cockpit 0.3.2 사용 설명서</title>
   <style>
     :root { color-scheme: dark; --bg: #101722; --panel: #182332; --panel2: #202e3e; --line: #344456; --text: #edf3f8; --muted: #b3c2d1; --accent: #83d4ee; --green: #9be0b5; --amber: #ffd58a; }
     * { box-sizing: border-box; }
@@ -61,10 +61,10 @@
 <body>
   <header>
     <div class="wrap">
-      <p class="eyebrow">Herdr Cockpit · v0.3.1</p>
+      <p class="eyebrow">Herdr Cockpit · v0.3.2</p>
       <h1>로컬과 Linux VM을<br>한 화면에서 관리</h1>
       <p class="lead">Windows 또는 Linux의 VS Code에서 로컬 Herdr와 SSH 호스트의 공간·에이전트·터미널을 함께 확인하는 사용 설명서입니다.</p>
-      <div class="actions"><a class="button" href="https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.1/herdr-cockpit-0.3.1.vsix">v0.3.1 VSIX 다운로드</a><a class="button secondary" href="https://github.com/doha-230/vscode-herdr-cockpit">소스와 최신 정보</a></div>
+      <div class="actions"><a class="button" href="https://github.com/doha-230/vscode-herdr-cockpit/releases/download/v0.3.2/herdr-cockpit-0.3.2.vsix">v0.3.2 VSIX 다운로드</a><a class="button secondary" href="https://github.com/doha-230/vscode-herdr-cockpit">소스와 최신 정보</a></div>
     </div>
   </header>
   <nav aria-label="목차"><div class="wrap"><a href="#overview">화면 구성</a><a href="#install">설치</a><a href="#ssh">SSH 키 연결</a><a href="#use">사용법</a><a href="#state">접기 상태</a><a href="#compat">지원 범위</a><a href="#trouble">문제 해결</a></div></nav>
@@ -80,7 +80,7 @@
     <section id="install">
       <h2>설치와 준비</h2>
       <ol class="steps">
-        <li><strong>VSIX 설치</strong><br>VS Code에서 <em>Extensions: Install from VSIX…</em>를 실행하고 위의 v0.3.1 파일을 선택합니다. 터미널에서는 <code>code --install-extension herdr-cockpit-0.3.1.vsix</code>를 사용할 수 있습니다.</li>
+        <li><strong>VSIX 설치</strong><br>VS Code에서 <em>Extensions: Install from VSIX…</em>를 실행하고 위의 v0.3.2 파일을 선택합니다. 터미널에서는 <code>code --install-extension herdr-cockpit-0.3.2.vsix</code>를 사용할 수 있습니다.</li>
         <li><strong>로컬 Herdr 준비</strong><br>로컬 Herdr 서버를 실행합니다. 설치되어 있다면 사이드바의 <em>Start Herdr</em>로 시작할 수도 있습니다.</li>
         <li><strong>VM 준비</strong><br>Linux VM에 OpenSSH 서버와 Herdr를 설치하고 Herdr 서버를 실행합니다. Windows에서 VM의 SSH 주소와 포트에 접속할 수 있어야 합니다.</li>
         <li><strong>로컬 VS Code 창 사용</strong><br>Windows 데스크톱과 VM을 동시에 보려면 Windows의 로컬 VS Code 창에서 확장을 실행합니다. Remote-SSH 창에서 실행하면 그 원격 서버가 Local로 취급됩니다.</li>
@@ -140,12 +140,12 @@
     </section>
     <section id="trouble">
       <h2>문제 해결</h2>
-      <details><summary>SSH 호스트가 연결되지 않음</summary><p>설정 창의 <em>Test SSH + Herdr</em>가 보여 주는 오류를 확인하세요. <code>Permission denied (publickey)</code>면 키 파일·ssh-agent·사용자를 확인합니다. <code>Host key verification failed</code>면 PowerShell에서 먼저 <code>ssh vm-linux</code>로 접속해 서버 지문을 확인하고 등록하세요. Herdr 명령을 찾지 못하면 원격 실행 파일 경로를 설정합니다.</p></details>
+      <details><summary>SSH 호스트가 연결되지 않음</summary><p>설정 창의 <em>Test SSH + Herdr</em>가 보여 주는 오류를 확인하세요. <code>Permission denied (publickey)</code>면 키 파일·ssh-agent·사용자를 확인합니다. <code>Host key verification failed</code>면 PowerShell에서 먼저 <code>ssh vm-linux</code>로 접속해 서버 지문을 확인하고 등록하세요. <code>herdr: command not found</code>면 SSH 비로그인 셸의 PATH에 Herdr가 없는 경우입니다. v0.3.2는 일반적인 설치 경로를 자동 탐색하며, 계속 실패하면 VM에서 실행 파일의 절대 경로를 확인해 설정 창의 <em>Herdr executable on the remote host</em>에 입력하세요.</p></details>
       <details><summary>VM 접속은 되는데 Herdr가 보이지 않음</summary><p>VM에서 Herdr 서버 실행 상태와 소켓 경로를 확인합니다. 확장은 Herdr가 보고한 절대 Unix 소켓 경로로 터널을 엽니다. VM의 SSH 서버가 포워딩을 허용해야 합니다.</p></details>
       <details><summary>Windows 로컬 Herdr에 연결되지 않음</summary><p><code>herdr.binaryPath</code>가 실제 <code>herdr.exe</code> 파일을 가리키는지 확인하세요. <code>herdr.socketPath</code>에는 named pipe 접두사가 아닌 Herdr의 논리적 소켓 경로를 입력합니다.</p></details>
       <details><summary>원격 폴더의 Git과 diff가 통합 사이드바에 없음</summary><p>원격 공간의 <em>Open folder</em>를 눌러 Remote-SSH 창을 여세요. 원격 파일 작업은 그 창에서 제공됩니다.</p></details>
     </section>
   </main>
-  <footer><div class="wrap">Herdr Cockpit 0.3.1 · <a href="https://github.com/doha-230/vscode-herdr-cockpit/releases">릴리즈</a> · <a href="https://github.com/doha-230/vscode-herdr-cockpit/issues">문제 보고</a></div></footer>
+  <footer><div class="wrap">Herdr Cockpit 0.3.2 · <a href="https://github.com/doha-230/vscode-herdr-cockpit/releases">릴리즈</a> · <a href="https://github.com/doha-230/vscode-herdr-cockpit/issues">문제 보고</a></div></footer>
 </body>
 </html>

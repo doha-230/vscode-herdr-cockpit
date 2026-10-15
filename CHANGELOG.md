@@ -3,6 +3,11 @@
 Herdr Cockpit (the editor extension) and its Herdr plugin (`plugin/`) are released together from this repository.
 Versions up to 0.1.2 were published as **Herdr Hub** (`sriharirao.herdr-hub`).
 
+## 0.3.2 (2026-10-15)
+
+- Find Herdr in common Linux/macOS install directories when SSH's non-login shell does not include it on PATH.
+- Use the same executable resolution for remote status checks and attached terminal panes.
+
 ## 0.3.1 (2026-10-15)
 
 - Add an SSH host settings window for address or alias, user, port, private key path, display name, and remote Herdr paths.

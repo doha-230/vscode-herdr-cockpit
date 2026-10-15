@@ -2,7 +2,8 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { RemoteHost, remoteEnvPrefix, remoteQuote, sshConnectionArgs, validHost, validateRemoteConfig } from '../remote';
+import { execFileSync } from 'child_process';
+import { RemoteHost, remoteEnvPrefix, remoteHerdrCommand, remoteQuote, sshConnectionArgs, validHost, validateRemoteConfig } from '../remote';
 
 async function main() {
   assert.ok(validHost('build-server_1.example'));
@@ -17,6 +18,15 @@ async function main() {
     "HERDR_SOCKET_PATH='/home/me/.config/herdr/sessions/work/herdr.sock' HERDR_SESSION='work' ");
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'herdr-remote-'));
+  if (process.platform !== 'win32') {
+    const localBin = path.join(dir, '.local', 'bin');
+    fs.mkdirSync(localBin, { recursive: true });
+    const herdr = path.join(localBin, 'herdr');
+    fs.writeFileSync(herdr, '#!/bin/sh\nprintf "%s|%s|%s" "$1" "$2" "$3"\n', { mode: 0o755 });
+    const output = execFileSync('sh', ['-c', remoteHerdrCommand({ host: 'vm-linux' }, ['status', 'server', '--json'])],
+      { env: { ...process.env, HOME: dir, PATH: '/usr/bin:/bin' }, encoding: 'utf8' });
+    assert.strictEqual(output, 'status|server|--json');
+  }
   const ssh = path.join(dir, 'fake-ssh.js');
   fs.writeFileSync(ssh, `
 const net = require('net');
